@@ -1,0 +1,1966 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>학교생활 통합 조회</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23FF6B35'/%3E%3Ctext x='32' y='42' font-size='32' text-anchor='middle'%3E🏫%3C/text%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Black+Han+Sans&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --orange: #FF6B35;
+    --yellow: #FFD93D;
+    --green: #6BCB77;
+    --blue: #4D96FF;
+    --purple: #9B5DE5;
+    --red: #E53935;
+    --bg: #FFF9F0;
+    --card: #FFFFFF;
+    --text: #2D2D2D;
+    --muted: #888;
+    --line: #F0F0F0;
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; overflow-x: hidden; }
+
+  body {
+    font-family: 'Nanum Gothic', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  header {
+    background: var(--orange);
+    padding: clamp(16px, 4vw, 24px) 48px;
+    min-height: 70px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  header::before {
+    content: '🏫';
+    position: absolute;
+    right: -10px;
+    top: -14px;
+    font-size: clamp(64px, 18vw, 96px);
+    opacity: 0.12;
+  }
+  header h1 {
+    width: 100%;
+    max-width: 100%;
+    font-family: 'Nanum Gothic', sans-serif;
+    font-size: clamp(19px, 5vw, 30px);
+    font-weight: 800;
+    color: white;
+    letter-spacing: -0.6px;
+    line-height: 1.25;
+    text-align: center;
+    white-space: nowrap;
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(6px, 2.2vw, 14px);
+  }
+  header h1::before,
+  header h1::after {
+    font-size: clamp(18px, 4.8vw, 28px);
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  header h1::before { content: '🏫'; }
+  header h1::after { content: '📚'; }
+
+  .school-bar, .class-bar {
+    background: white;
+    border-bottom: 2px solid #f0f0f0;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+  .class-bar {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-bottom-color: #f6f6f6;
+  }
+  .school-name, .class-name {
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--orange);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .class-name { color: var(--text); }
+  .school-change, .class-change {
+    font-size: 11px;
+    color: var(--muted);
+    background: #f5f5f5;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  main {
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+
+  /* 첫 화면 */
+  .home-view {
+    min-height: calc(100dvh - 102px);
+    display: flex;
+    flex-direction: column;
+  }
+  .start-screen {
+    flex: 1;
+    min-height: calc(100dvh - 118px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 24px;
+    padding: 28px 10px 44px;
+  }
+  .start-logo {
+    width: clamp(82px, 22vw, 112px);
+    height: clamp(82px, 22vw, 112px);
+    border-radius: 28px;
+    background: var(--orange);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(42px, 12vw, 60px);
+    box-shadow: 0 10px 28px rgba(255,107,53,0.28);
+  }
+  .start-title-main {
+    display: block;
+    color: var(--text);
+    font-size: clamp(30px, 8vw, 44px);
+    font-weight: 400;
+    letter-spacing: -1.2px;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+  .start-title-sub {
+    display: block;
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: clamp(14px, 3.8vw, 18px);
+    font-weight: 400;
+    letter-spacing: -0.3px;
+  }
+  .school-lookup-btn {
+    width: min(100%, 340px);
+    border: none;
+    border-radius: 18px;
+    background: var(--orange);
+    color: white;
+    padding: 16px 22px;
+    font-size: clamp(16px, 4.2vw, 19px);
+    font-weight: 800;
+    font-family: 'Nanum Gothic', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(255,107,53,0.28);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .school-lookup-btn:active {
+    transform: scale(0.98);
+    box-shadow: 0 4px 12px rgba(255,107,53,0.22);
+  }
+  .menu-screen {
+    display: none;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .menu-intro {
+    background: white;
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  }
+  .menu-intro-title {
+    font-size: 17px;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+  .menu-intro-desc {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .home-menu {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 430px;
+  }
+  .home-card {
+    flex: 1;
+    min-height: 120px;
+    width: 100%;
+    border: none;
+    border-radius: 22px;
+    background: white;
+    box-shadow: 0 3px 14px rgba(0,0,0,0.08);
+    padding: 18px;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: relative;
+    overflow: hidden;
+    font-family: 'Nanum Gothic', sans-serif;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .home-card:active { transform: scale(0.985); }
+  .home-card::after {
+    content: '';
+    position: absolute;
+    right: -32px;
+    top: -32px;
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    background: #FFF3E8;
+  }
+  .home-icon {
+    width: 62px;
+    height: 62px;
+    border-radius: 18px;
+    background: #FFF3E8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 34px;
+    flex-shrink: 0;
+    z-index: 1;
+  }
+  .home-card:nth-child(2) .home-icon { background: #EAF3FF; }
+  .home-card:nth-child(3) .home-icon { background: #EAFBEF; }
+  .home-text { z-index: 1; flex: 1; min-width: 0; }
+  .home-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 22px;
+    margin-bottom: 6px;
+  }
+  .home-desc {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.45;
+  }
+  .home-arrow {
+    z-index: 1;
+    color: var(--orange);
+    font-size: 26px;
+    font-weight: 800;
+  }
+
+  /* 모듈 공통 */
+  .module-view { display: none; }
+  .top-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .home-back {
+    border: none;
+    background: white;
+    color: var(--orange);
+    font-size: 13px;
+    font-weight: 800;
+    padding: 9px 13px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-family: 'Nanum Gothic', sans-serif;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  .date-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    background: white;
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .date-nav button {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+  }
+  .date-nav button:hover { background: #f5f5f5; }
+  .date-label {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 17px;
+    color: var(--text);
+  }
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 9px 4px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.15s;
+    background: white;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .tab.active {
+    background: var(--orange);
+    color: white;
+    border-color: var(--orange);
+  }
+  .info-badge-row, .allergy-badge-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: -4px 0 12px;
+  }
+  .info-badge, .allergy-active-badge, .allergy-none-badge, .calorie-badge, .section-count {
+    background: #FFF3E8;
+    color: var(--orange);
+    font-size: 11px;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .allergy-active-badge {
+    background: #fde8e8;
+    color: var(--red);
+    border: 1px solid #f5c6c6;
+  }
+  .allergy-none-badge {
+    background: #f5f5f5;
+    color: var(--muted);
+  }
+
+  .today-card, .calendar-grid, .setup-card, .week-card {
+    background: white;
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    margin-bottom: 16px;
+  }
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .section-title, .setup-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 17px;
+  }
+  .today-date, .detail-date {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    font-weight: 700;
+  }
+  .nav-btn {
+    background: none;
+    border: 2px solid #eee;
+    border-radius: 10px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 800;
+    font-family: 'Nanum Gothic', sans-serif;
+  }
+  .nav-btn:disabled { opacity: 0.3; cursor: default; }
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+  .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; line-height: 1.6; }
+  .spinner {
+    display: inline-block;
+    width: 18px; height: 18px;
+    border: 2px solid #eee;
+    border-top-color: var(--orange);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-left: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* 목록형 카드 */
+  .event-list, .menu-list, .period-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .event-card, .menu-item, .period-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 12px;
+    background: #FFF9F0;
+    border-radius: 12px;
+    border-left: 4px solid var(--orange);
+    animation: slideIn 0.25s ease both;
+  }
+  .event-card:nth-child(2), .menu-item:nth-child(2), .period-item:nth-child(2) { animation-delay: 0.04s; border-left-color: var(--yellow); }
+  .event-card:nth-child(3), .menu-item:nth-child(3), .period-item:nth-child(3) { animation-delay: 0.08s; border-left-color: var(--green); }
+  .event-card:nth-child(4), .menu-item:nth-child(4), .period-item:nth-child(4) { animation-delay: 0.12s; border-left-color: var(--blue); }
+  .event-card:nth-child(5), .menu-item:nth-child(5), .period-item:nth-child(5) { animation-delay: 0.16s; border-left-color: var(--purple); }
+  .event-card:nth-child(n+6), .menu-item:nth-child(n+6), .period-item:nth-child(n+6) { animation-delay: 0.20s; }
+
+  .event-date-badge, .period-badge {
+    min-width: 52px;
+    border-radius: 10px;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    flex-shrink: 0;
+  }
+  .event-date-badge {
+    flex-direction: column;
+    padding: 7px 6px;
+  }
+  .event-date-badge .month { font-size: 10px; color: var(--muted); font-weight: 800; }
+  .event-date-badge .day { font-size: 21px; font-weight: 800; line-height: 1.1; color: var(--orange); }
+  .event-date-badge .dow { font-size: 10px; color: var(--muted); font-weight: 800; }
+  .period-badge {
+    height: 32px;
+    color: var(--orange);
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .event-info, .subject-name, .menu-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.35;
+    word-break: keep-all;
+  }
+  .event-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 6px;
+    align-items: center;
+  }
+  .event-type-tag, .grade-tag, .menu-allergy {
+    font-size: 10.5px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 20px;
+    background: #f5f5f5;
+    color: var(--muted);
+  }
+  .event-type-tag.type-1 { background: #EAF3FF; color: var(--blue); }
+  .event-type-tag.type-2 { background: #EAFBEF; color: #2E9D46; }
+  .event-type-tag.type-3 { background: #FFF0F0; color: var(--red); }
+  .event-type-tag.type-4 { background: #FFF8D8; color: #AA7A00; }
+  .event-emoji, .menu-emoji, .subject-emoji {
+    font-size: 20px;
+    width: 26px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  /* 달력 */
+  .calendar-grid { padding: 14px; }
+  .cal-header, .cal-week {
+    display: grid;
+    gap: 4px;
+  }
+  .cal-header.cols-7, .cal-week.cols-7 { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .cal-header.cols-5, .cal-week.cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .cal-header { margin-bottom: 8px; }
+  .cal-day-label {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--muted);
+    padding: 4px 0;
+  }
+  .cal-day-label.sun { color: var(--red); }
+  .cal-day-label.sat { color: var(--blue); }
+  .cal-weeks { display: flex; flex-direction: column; gap: 4px; }
+  .cal-cell {
+    background: #FFF9F0;
+    border-radius: 10px;
+    padding: 6px 4px;
+    min-height: 72px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 2px solid transparent;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .cal-cell:hover { border-color: var(--orange); transform: translateY(-1px); }
+  .cal-cell.today { border-color: var(--orange); background: #FFF3E8; }
+  .cal-cell.selected { background: var(--orange); }
+  .cal-cell.selected .cal-date, .cal-cell.selected .cal-preview, .cal-cell.selected .cal-more { color: white; }
+  .cal-cell.selected .event-pill { background: rgba(255,255,255,0.25); color: white; }
+  .cal-cell.no-data { background: #f9f9f9; cursor: default; }
+  .cal-cell.no-data:hover { transform: none; border-color: transparent; }
+  .cal-date {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 4px;
+    text-align: center;
+  }
+  .cal-cell.sun .cal-date { color: var(--red); }
+  .cal-cell.sat .cal-date { color: var(--blue); }
+  .cal-cell.today .cal-date { color: var(--orange); }
+  .cal-cell.selected .cal-date { color: white; }
+  .cal-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .event-pill {
+    display: block;
+    width: 100%;
+    padding: 2px 3px;
+    border-radius: 5px;
+    background: rgba(255,107,53,0.12);
+    color: #C85226;
+    font-size: 8.5px;
+    font-weight: 800;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+  }
+  .cal-more { font-size: 8.5px; color: var(--muted); text-align: center; margin-top: 1px; }
+  .detail-card {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 2px dashed #f0f0f0;
+  }
+
+  /* 주간 시간표 */
+  .week-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .week-title {
+    text-align: center;
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 16px;
+    flex: 1;
+  }
+  .week-table-wrap {
+    overflow-x: hidden;
+    padding-bottom: 2px;
+    width: 100%;
+  }
+  .week-table {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 4px;
+  }
+  .week-table th {
+    font-size: 10.5px;
+    color: var(--muted);
+    padding: 5px 1px;
+    white-space: nowrap;
+  }
+  .week-table th:first-child { width: 46px; }
+  .week-table td {
+    background: #FFF9F0;
+    border-radius: 10px;
+    padding: 8px 4px;
+    text-align: center;
+    font-size: 11.5px;
+    font-weight: 800;
+    min-height: 42px;
+    line-height: 1.35;
+    word-break: keep-all;
+  }
+  .week-table td.period-head {
+    background: white;
+    color: var(--orange);
+    border: 2px solid #eee;
+    width: 46px;
+    padding: 8px 2px;
+    white-space: nowrap;
+    font-size: 11px;
+  }
+  .week-table td.empty { color: #bbb; background: #f9f9f9; font-weight: 400; }
+  .week-table .today-col { outline: 2px solid var(--orange); }
+
+  /* 설정/알러지 */
+  .setting-row, .search-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .search-input, .select-input, .number-input {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 14px;
+    border: 2px solid #eee;
+    border-radius: 12px;
+    font-size: 14px;
+    font-family: 'Nanum Gothic', sans-serif;
+    outline: none;
+    transition: border-color 0.15s;
+    background: white;
+  }
+  .search-input:focus, .select-input:focus, .number-input:focus { border-color: var(--orange); }
+  .search-btn, .save-btn, .allergy-save-btn {
+    background: var(--orange);
+    color: white;
+    border: none;
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    font-family: 'Nanum Gothic', sans-serif;
+    white-space: nowrap;
+  }
+  .save-btn, .allergy-save-btn { width: 100%; margin-top: 10px; }
+  .help-card, .allergy-info-card {
+    background: #fff9e6;
+    border: 1px solid #ffe082;
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: #7c5c00;
+    line-height: 1.6;
+    margin: 12px 0 0;
+  }
+  .allergy-info-card {
+    background: #fff0f0;
+    border-color: #f5c6c6;
+    color: #c62828;
+    margin: 0 0 12px;
+  }
+  .allergy-section-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 15px;
+    color: var(--text);
+    margin: 16px 0 10px;
+  }
+  .allergy-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .allergy-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 6px;
+    background: white;
+    border: 2px solid #eee;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    user-select: none;
+  }
+  .allergy-chip.selected {
+    border-color: var(--red);
+    background: #fff5f5;
+  }
+  .allergy-chip-emoji { font-size: 22px; }
+  .allergy-chip-name {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .allergy-chip.selected .allergy-chip-name { color: var(--red); }
+  .allergy-chip-num {
+    font-size: 9px;
+    color: var(--muted);
+    background: #f5f5f5;
+    padding: 1px 5px;
+    border-radius: 6px;
+  }
+  .menu-item.allergy-alert {
+    background: #fff0f0;
+    border-left-color: var(--red) !important;
+  }
+  .menu-item.allergy-alert .menu-name { color: var(--red); }
+  .menu-allergy.alert { background: #fde8e8; color: var(--red); margin-left: auto; }
+  .cal-allergy-dot {
+    width: 6px; height: 6px;
+    background: var(--red);
+    border-radius: 50%;
+    display: inline-block;
+    margin-left: 2px;
+    vertical-align: middle;
+  }
+  .allergy-menu-text { color: var(--red); font-weight: 800; }
+
+  /* 모달 */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: white;
+    border-radius: 24px 24px 0 0;
+    padding: 24px 20px 32px;
+    width: 100%;
+    max-width: 560px;
+    animation: slideUp 0.25s ease;
+    position: relative;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal h2 {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+  .search-results { max-height: 310px; overflow-y: auto; }
+  .result-item {
+    padding: 12px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.1s;
+    border-bottom: 1px solid #f5f5f5;
+  }
+  .result-item:hover { background: #FFF3E8; }
+  .result-name { font-weight: 800; font-size: 14px; }
+  .result-addr { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+  .modal-close {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: none; border: none;
+    font-size: 22px; cursor: pointer;
+  }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%) translateY(80px);
+    background: rgba(45,45,45,0.92);
+    color: white;
+    font-size: 13px;
+    font-weight: 800;
+    padding: 10px 16px;
+    border-radius: 100px;
+    z-index: 200;
+    transition: transform 0.25s ease;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 420px) {
+    header { padding-left: 36px; padding-right: 36px; }
+    main { padding: 14px; }
+    .start-screen { gap: 22px; padding-bottom: 38px; }
+    .home-menu { min-height: 390px; }
+    .home-card { padding: 15px; gap: 12px; }
+    .home-icon { width: 54px; height: 54px; font-size: 30px; border-radius: 16px; }
+    .home-title { font-size: 20px; }
+    .tab { font-size: 12px; }
+    .today-card, .setup-card, .week-card { padding: 16px; }
+    .calendar-grid { padding: 10px; }
+    .cal-header, .cal-week { gap: 3px; }
+    .cal-cell { min-height: 66px; padding: 5px 2px; border-radius: 8px; }
+    .event-pill { font-size: 8px; padding: 2px 2px; }
+    .event-card, .menu-item, .period-item { gap: 8px; padding: 10px; }
+    .event-date-badge { min-width: 48px; }
+    .event-info, .subject-name, .menu-name { font-size: 14px; }
+    .week-table { border-spacing: 3px; }
+    .week-table th { font-size: 10px; }
+    .week-table th:first-child { width: 42px; }
+    .week-table td { font-size: 11px; padding: 7px 2px; }
+    .week-table td.period-head { width: 42px; padding: 7px 1px; font-size: 10.5px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="appTitle">학교생활 통합 조회</h1>
+</header>
+
+<div class="school-bar hidden" id="schoolBar" onclick="openSchoolModal()">
+  <span class="school-name" id="schoolNameDisplay">인천예송초등학교</span>
+  <span class="school-change">학교 선택 ›</span>
+</div>
+<div class="class-bar hidden" id="classBar" onclick="switchSubView('setup')">
+  <span class="class-name" id="classNameDisplay">6학년 1반</span>
+  <span class="class-change">학급 설정 ›</span>
+</div>
+
+<main>
+  <section class="home-view" id="homeView">
+    <div class="start-screen" id="startScreen">
+      <div class="start-logo">🏫</div>
+      <div class="start-title" aria-label="학교생활 통합 조회">
+        <span class="start-title-main">학교생활</span>
+        <span class="start-title-sub">통합 조회</span>
+      </div>
+      <button class="school-lookup-btn" onclick="openSchoolModal()">학교 조회</button>
+    </div>
+
+    <div class="menu-screen" id="menuScreen">
+      <div class="menu-intro">
+        <div class="menu-intro-title" id="selectedSchoolTitle">학교를 선택했습니다</div>
+        <div class="menu-intro-desc">조회할 항목을 선택하세요.</div>
+      </div>
+
+      <div class="home-menu">
+        <button class="home-card" onclick="openModule('schedule')">
+          <span class="home-icon">📅</span>
+          <span class="home-text">
+            <span class="home-title">학사일정</span>
+            <span class="home-desc">월별 행사와 학년별 일정을 확인합니다.</span>
+          </span>
+          <span class="home-arrow">›</span>
+        </button>
+
+        <button class="home-card" onclick="openModule('timetable')">
+          <span class="home-icon">📚</span>
+          <span class="home-text">
+            <span class="home-title">시간표</span>
+            <span class="home-desc">학년·반을 설정하고 날짜별/주간 시간표를 봅니다.</span>
+          </span>
+          <span class="home-arrow">›</span>
+        </button>
+
+        <button class="home-card" onclick="openModule('meal')">
+          <span class="home-icon">🍱</span>
+          <span class="home-text">
+            <span class="home-title">급식</span>
+            <span class="home-desc">오늘의 급식과 알러지 성분을 확인합니다.</span>
+          </span>
+          <span class="home-arrow">›</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="module-view" id="moduleView">
+    <div class="top-actions">
+      <button class="home-back" onclick="showServiceMenu()">‹ 메뉴</button>
+    </div>
+
+    <div class="date-nav" id="dateNav">
+      <button onclick="changeMonth(-1)">‹</button>
+      <span class="date-label" id="dateLabel"></span>
+      <button onclick="changeMonth(1)">›</button>
+    </div>
+
+    <div class="tabs" id="moduleTabs"></div>
+    <div class="info-badge-row" id="infoBadgeRow"></div>
+    <div id="moduleContent"></div>
+  </section>
+</main>
+
+<!-- School Search Modal -->
+<div class="modal-overlay" id="schoolModal" onclick="closeModalOutside(event, 'schoolModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeSchoolModal()">✕</button>
+    <h2>학교 검색</h2>
+    <div class="search-row">
+      <input type="text" class="search-input" id="schoolSearch" placeholder="학교 이름 입력 (예: 예송초)" onkeydown="if(event.key==='Enter')searchSchool()">
+      <button class="search-btn" onclick="searchSchool()">검색</button>
+    </div>
+    <div class="search-results" id="searchResults">
+      <div class="empty-state" style="padding:20px">
+        <p>학교명을 입력하고 검색하세요</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const NEIS_KEY = '3d265e8fadf142cb9b0dcdd10ff049df';
+
+const DEFAULT_SCHOOL = {
+  ATPT_OFCDC_SC_CODE: 'E10',
+  SD_SCHUL_CODE: '7341401',
+  name: '인천예송초등학교'
+};
+
+const state = {
+  school: JSON.parse(localStorage.getItem('eduHub_school') || 'null') || DEFAULT_SCHOOL,
+  module: 'home',
+  schedule: { date: new Date(), view: 'list', selectedDay: null, cache: {} },
+  timetable: {
+    date: new Date(),
+    view: 'day',
+    selectedDay: null,
+    cache: {},
+    classSetting: JSON.parse(localStorage.getItem('eduHub_classSetting') || 'null') || { grade: '6', classNm: '1' }
+  },
+  meal: { date: new Date(), view: 'day', selectedDay: null, cache: {} }
+};
+
+let schoolSearchRows = [];
+let toastTimer = null;
+
+function esc(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+
+function yyyymm(d) {
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+function yyyymmdd(d) {
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+}
+function dateFromYmd(ds) {
+  return new Date(parseInt(ds.slice(0,4),10), parseInt(ds.slice(4,6),10)-1, parseInt(ds.slice(6,8),10));
+}
+function dayName(d) {
+  return ['일','월','화','수','목','금','토'][d.getDay()];
+}
+function addDays(d, amount) {
+  const n = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  n.setDate(n.getDate() + amount);
+  return n;
+}
+function mondayOf(d) {
+  const base = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diff = base.getDay() === 0 ? -6 : 1 - base.getDay();
+  base.setDate(base.getDate() + diff);
+  return base;
+}
+function lastDayOfMonth(yearMonth) {
+  const year = parseInt(yearMonth.slice(0, 4), 10);
+  const month = parseInt(yearMonth.slice(4, 6), 10);
+  return new Date(year, month, 0).getDate();
+}
+function schoolYearOf(d) {
+  return d.getMonth() < 2 ? String(d.getFullYear() - 1) : String(d.getFullYear());
+}
+function semesterOf(d) {
+  const m = d.getMonth() + 1;
+  return (m >= 3 && m <= 8) ? '1' : '2';
+}
+
+function init() {
+  updateSchoolDisplay();
+  updateClassDisplay();
+  showHome();
+}
+init();
+
+function updateSchoolDisplay() {
+  document.getElementById('schoolNameDisplay').textContent = state.school.name;
+}
+function updateClassDisplay() {
+  const c = state.timetable.classSetting;
+  document.getElementById('classNameDisplay').textContent = `${c.grade}학년 ${c.classNm}반`;
+}
+
+function showHome() {
+  state.module = 'home';
+  document.getElementById('homeView').style.display = 'flex';
+  document.getElementById('moduleView').style.display = 'none';
+  document.getElementById('startScreen').style.display = 'flex';
+  document.getElementById('menuScreen').style.display = 'none';
+  document.getElementById('schoolBar').classList.add('hidden');
+  document.getElementById('classBar').classList.add('hidden');
+  document.getElementById('appTitle').textContent = '학교생활 통합 조회';
+  document.querySelector('.school-change').textContent = '학교 선택 ›';
+}
+
+function showServiceMenu() {
+  state.module = 'home';
+  document.getElementById('homeView').style.display = 'flex';
+  document.getElementById('moduleView').style.display = 'none';
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('menuScreen').style.display = 'flex';
+  document.getElementById('schoolBar').classList.remove('hidden');
+  document.getElementById('classBar').classList.add('hidden');
+  document.getElementById('appTitle').textContent = '학교생활 통합 조회';
+  document.getElementById('selectedSchoolTitle').textContent = state.school.name;
+  document.querySelector('.school-change').textContent = '학교 변경 ›';
+}
+
+function openModule(moduleName) {
+  state.module = moduleName;
+  document.getElementById('homeView').style.display = 'none';
+  document.getElementById('moduleView').style.display = 'block';
+  document.getElementById('schoolBar').classList.remove('hidden');
+  document.getElementById('classBar').classList.toggle('hidden', moduleName !== 'timetable');
+  document.getElementById('appTitle').textContent = '학교생활 통합 조회';
+  document.querySelector('.school-change').textContent = '학교 변경 ›';
+  renderModule();
+}
+
+function getModuleState() {
+  return state[state.module];
+}
+
+function changeMonth(delta) {
+  const s = getModuleState();
+  if (!s || !s.date) return;
+  s.date = new Date(s.date.getFullYear(), s.date.getMonth() + delta, 1);
+  s.selectedDay = null;
+  renderModule();
+}
+
+function switchSubView(viewName) {
+  const s = getModuleState();
+  if (!s) return;
+  s.view = viewName;
+  renderModule();
+}
+
+function renderModule() {
+  if (state.module === 'home') return;
+  const s = getModuleState();
+  document.getElementById('dateLabel').textContent = `${s.date.getFullYear()}년 ${s.date.getMonth() + 1}월`;
+  renderTabs();
+  renderInfoBadges();
+
+  if (state.module === 'schedule') {
+    if (state.schedule.view === 'list') renderScheduleList();
+    else renderScheduleCalendar();
+  } else if (state.module === 'timetable') {
+    if (state.timetable.view === 'day') renderTimetableDay();
+    else if (state.timetable.view === 'week') renderTimetableWeek();
+    else if (state.timetable.view === 'cal') renderTimetableCalendar();
+    else renderTimetableSetup();
+  } else if (state.module === 'meal') {
+    if (state.meal.view === 'day') renderMealDay();
+    else if (state.meal.view === 'cal') renderMealCalendar();
+    else renderAllergyPage();
+  }
+}
+
+function renderTabs() {
+  const tabsEl = document.getElementById('moduleTabs');
+  let tabs = [];
+  const s = getModuleState();
+
+  if (state.module === 'schedule') {
+    tabs = [
+      ['list', '📋 일정목록'],
+      ['cal', '🗓 달력보기']
+    ];
+  } else if (state.module === 'timetable') {
+    tabs = [
+      ['day', '📅 날짜별'],
+      ['week', '🧾 주간표'],
+      ['cal', '🗓 달력'],
+      ['setup', '⚙️ 설정']
+    ];
+  } else {
+    tabs = [
+      ['day', '📅 날짜별'],
+      ['cal', '🗓 달력보기'],
+      ['allergy', '⚠️ 알러지']
+    ];
+  }
+
+  tabsEl.innerHTML = tabs.map(([key, label]) => (
+    `<div class="tab ${s.view === key ? 'active' : ''}" onclick="switchSubView('${key}')">${label}</div>`
+  )).join('');
+}
+
+function renderInfoBadges() {
+  const el = document.getElementById('infoBadgeRow');
+  const schoolBadge = `<span class="info-badge">🏫 ${esc(state.school.name)}</span>`;
+
+  if (state.module === 'schedule') {
+    el.innerHTML = schoolBadge + `<button class="info-badge" style="border:none;cursor:pointer;font-family:'Nanum Gothic',sans-serif" onclick="goToday()">오늘</button>`;
+  } else if (state.module === 'timetable') {
+    const c = state.timetable.classSetting;
+    el.innerHTML = schoolBadge + `<span class="info-badge">👥 ${esc(c.grade)}학년 ${esc(c.classNm)}반</span>`;
+  } else {
+    updateAllergyBadgeBar(el, schoolBadge);
+  }
+}
+
+function goToday() {
+  const today = new Date();
+  const s = getModuleState();
+  if (!s) return;
+  s.date = today;
+  s.selectedDay = null;
+  renderModule();
+}
+
+/* 학교 검색 */
+function openSchoolModal() {
+  document.getElementById('schoolModal').classList.add('open');
+  setTimeout(() => document.getElementById('schoolSearch').focus(), 150);
+}
+function closeSchoolModal() {
+  document.getElementById('schoolModal').classList.remove('open');
+}
+function closeModalOutside(e, id) {
+  if (e.target.id === id) document.getElementById(id).classList.remove('open');
+}
+async function searchSchool(query) {
+  const q = query || document.getElementById('schoolSearch').value.trim();
+  if (!q) return;
+
+  const resultsEl = document.getElementById('searchResults');
+  resultsEl.innerHTML = '<div style="text-align:center;padding:20px">검색 중<span class="spinner"></span></div>';
+
+  const url = `https://open.neis.go.kr/hub/schoolInfo?KEY=${NEIS_KEY}&Type=json&pIndex=1&pSize=20`
+    + `&SCHUL_NM=${encodeURIComponent(q)}&SCHUL_KND_SC_NM=${encodeURIComponent('초등학교')}`;
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    const rows = data?.schoolInfo?.[1]?.row || [];
+    schoolSearchRows = rows;
+
+    if (rows.length === 0) {
+      resultsEl.innerHTML = '<div class="empty-state"><p>검색 결과가 없어요<br>다른 이름으로 검색해보세요</p></div>';
+      return;
+    }
+
+    resultsEl.innerHTML = rows.map((r, index) => `
+      <div class="result-item" onclick="selectSchoolFromResult(${index})">
+        <div class="result-name">${esc(r.SCHUL_NM)}</div>
+        <div class="result-addr">${esc(r.ORG_RDNMA || r.LCTN_SC_NM || '')}</div>
+      </div>
+    `).join('');
+  } catch(e) {
+    resultsEl.innerHTML = '<div class="empty-state"><p>검색 중 오류가 발생했어요</p></div>';
+  }
+}
+function selectSchoolFromResult(index) {
+  const r = schoolSearchRows[index];
+  if (!r) return;
+
+  state.school = {
+    ATPT_OFCDC_SC_CODE: r.ATPT_OFCDC_SC_CODE,
+    SD_SCHUL_CODE: r.SD_SCHUL_CODE,
+    name: r.SCHUL_NM
+  };
+  localStorage.setItem('eduHub_school', JSON.stringify(state.school));
+  state.schedule.cache = {};
+  state.timetable.cache = {};
+  state.meal.cache = {};
+  updateSchoolDisplay();
+  closeSchoolModal();
+  showToast('학교가 변경되었어요');
+  if (state.module === 'home') showServiceMenu();
+  else renderModule();
+}
+
+/* 학사일정 */
+async function fetchSchedules(yearMonth) {
+  const cacheKey = `${state.school.SD_SCHUL_CODE}_${yearMonth}`;
+  if (state.schedule.cache[cacheKey]) return state.schedule.cache[cacheKey];
+
+  const lastDay = lastDayOfMonth(yearMonth);
+  const fromYmd = `${yearMonth}01`;
+  const toYmd = `${yearMonth}${String(lastDay).padStart(2, '0')}`;
+
+  const url = `https://open.neis.go.kr/hub/SchoolSchedule?KEY=${NEIS_KEY}&Type=json&pIndex=1&pSize=100`
+    + `&ATPT_OFCDC_SC_CODE=${encodeURIComponent(state.school.ATPT_OFCDC_SC_CODE)}`
+    + `&SD_SCHUL_CODE=${encodeURIComponent(state.school.SD_SCHUL_CODE)}`
+    + `&AA_FROM_YMD=${fromYmd}`
+    + `&AA_TO_YMD=${toYmd}`;
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.RESULT) {
+      state.schedule.cache[cacheKey] = {};
+      return {};
+    }
+    const rows = data?.SchoolSchedule?.[1]?.row || [];
+    const map = {};
+    rows.forEach(r => {
+      const date = r.AA_YMD;
+      if (!date) return;
+      (map[date] = map[date] || []).push({
+        date,
+        name: r.EVENT_NM || '학사일정',
+        content: r.EVENT_CNTNT || '',
+        type: r.EVENT_CRGR_SC_NM || '학사일정',
+        grades: gradeScopeText(r)
+      });
+    });
+    Object.keys(map).forEach(k => map[k].sort((a,b) => a.name.localeCompare(b.name, 'ko')));
+    state.schedule.cache[cacheKey] = map;
+    return map;
+  } catch(e) {
+    showToast('일정을 불러오지 못했어요');
+    return {};
+  }
+}
+function gradeScopeText(r) {
+  const gradeKeys = [
+    ['1학년', 'ONE_GRADE_EVENT_YN'],
+    ['2학년', 'TW_GRADE_EVENT_YN'],
+    ['3학년', 'THREE_GRADE_EVENT_YN'],
+    ['4학년', 'FR_GRADE_EVENT_YN'],
+    ['5학년', 'FIV_GRADE_EVENT_YN'],
+    ['6학년', 'SIX_GRADE_EVENT_YN']
+  ];
+  const selected = gradeKeys.filter(([_, key]) => r[key] === 'Y').map(([label]) => label);
+  if (selected.length === 0 || selected.length === 6) return '전체';
+  return selected.join(', ');
+}
+function eventEmoji(ev) {
+  const name = `${ev.name} ${ev.type}`;
+  if (name.includes('방학') || name.includes('휴업') || name.includes('휴교')) return '🏖';
+  if (name.includes('개학') || name.includes('입학') || name.includes('졸업')) return '🎓';
+  if (name.includes('체험') || name.includes('현장') || name.includes('수학여행')) return '🚌';
+  if (name.includes('평가') || name.includes('시험')) return '📝';
+  if (name.includes('운동') || name.includes('체육')) return '🏃';
+  return '📌';
+}
+function eventTypeClass(type) {
+  if (!type) return 'type-1';
+  if (type.includes('방학') || type.includes('휴업') || type.includes('휴교')) return 'type-3';
+  if (type.includes('개학') || type.includes('입학') || type.includes('졸업')) return 'type-2';
+  if (type.includes('시험') || type.includes('평가')) return 'type-4';
+  return 'type-1';
+}
+async function renderScheduleList() {
+  const el = document.getElementById('moduleContent');
+  el.innerHTML = '<div class="today-card"><div style="text-align:center">일정 불러오는 중<span class="spinner"></span></div></div>';
+
+  const schedules = await fetchSchedules(yyyymm(state.schedule.date));
+  const list = Object.values(schedules).flat().sort((a,b) => a.date.localeCompare(b.date));
+
+  if (list.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="emoji">📭</div><p>이번 달 등록된 학사일정이<br>없습니다</p></div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="today-card">
+      <div class="section-head">
+        <div class="section-title">이번 달 일정</div>
+        <span class="section-count">${list.length}건</span>
+      </div>
+      <div class="event-list">
+        ${list.map(renderEventCard).join('')}
+      </div>
+    </div>
+  `;
+}
+function renderEventCard(ev) {
+  const d = dateFromYmd(ev.date);
+  const typeClass = eventTypeClass(ev.type);
+  return `
+    <div class="event-card" id="ev-${ev.date}">
+      <div class="event-date-badge">
+        <div class="month">${d.getMonth()+1}월</div>
+        <div class="day">${d.getDate()}</div>
+        <div class="dow">${dayName(d)}요일</div>
+      </div>
+      <span class="event-emoji">${eventEmoji(ev)}</span>
+      <div class="event-info">
+        <div class="event-name">${esc(ev.name)}</div>
+        <div class="event-meta">
+          <span class="event-type-tag ${typeClass}">${esc(ev.type)}</span>
+          <span class="grade-tag">${esc(ev.grades)}</span>
+        </div>
+      </div>
+    </div>`;
+}
+async function renderScheduleCalendar() {
+  const el = document.getElementById('moduleContent');
+  el.innerHTML = '<div class="calendar-grid"><div style="text-align:center;padding:20px">일정 불러오는 중<span class="spinner"></span></div></div>';
+  const schedules = await fetchSchedules(yyyymm(state.schedule.date));
+  el.innerHTML = renderMonthCalendar({
+    date: state.schedule.date,
+    dataMap: schedules,
+    mode: 'schedule',
+    cols: 7,
+    selectedDay: state.schedule.selectedDay
+  });
+}
+function selectScheduleDay(ds) {
+  state.schedule.selectedDay = state.schedule.selectedDay === ds ? null : ds;
+  renderScheduleCalendar();
+}
+
+/* 시간표 */
+async function fetchTimetable(yearMonth) {
+  const monthDate = new Date(parseInt(yearMonth.slice(0,4),10), parseInt(yearMonth.slice(4,6),10) - 1, 15);
+  const ay = schoolYearOf(monthDate);
+  const sem = semesterOf(monthDate);
+  const c = state.timetable.classSetting;
+  const cacheKey = `${state.school.SD_SCHUL_CODE}_${c.grade}_${c.classNm}_${yearMonth}_${ay}_${sem}`;
+  if (state.timetable.cache[cacheKey]) return state.timetable.cache[cacheKey];
+
+  const lastDay = lastDayOfMonth(yearMonth);
+  const fromYmd = `${yearMonth}01`;
+  const toYmd = `${yearMonth}${String(lastDay).padStart(2, '0')}`;
+
+  const url = `https://open.neis.go.kr/hub/elsTimetable?KEY=${NEIS_KEY}&Type=json&pIndex=1&pSize=1000`
+    + `&ATPT_OFCDC_SC_CODE=${encodeURIComponent(state.school.ATPT_OFCDC_SC_CODE)}`
+    + `&SD_SCHUL_CODE=${encodeURIComponent(state.school.SD_SCHUL_CODE)}`
+    + `&AY=${encodeURIComponent(ay)}`
+    + `&SEM=${encodeURIComponent(sem)}`
+    + `&GRADE=${encodeURIComponent(c.grade)}`
+    + `&CLASS_NM=${encodeURIComponent(c.classNm)}`
+    + `&TI_FROM_YMD=${fromYmd}`
+    + `&TI_TO_YMD=${toYmd}`;
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.RESULT) {
+      state.timetable.cache[cacheKey] = {};
+      return {};
+    }
+    const rows = data?.elsTimetable?.[1]?.row || [];
+    const map = {};
+    rows.forEach(r => {
+      const ds = r.ALL_TI_YMD;
+      if (!ds) return;
+      if (!map[ds]) map[ds] = [];
+      map[ds].push({
+        period: parseInt(r.PERIO || '0', 10) || 0,
+        subject: (r.ITRT_CNTNT || '').replace(/<br\/?\s*>/gi, ' ').trim() || '수업'
+      });
+    });
+    Object.values(map).forEach(list => list.sort((a, b) => a.period - b.period));
+    state.timetable.cache[cacheKey] = map;
+    return map;
+  } catch(e) {
+    showToast('시간표를 불러오지 못했어요');
+    return {};
+  }
+}
+async function getTimetableForRange(startDate, endDate) {
+  const map = {};
+  const cursor = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+  const endCursor = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+  while (cursor <= endCursor) {
+    const monthMap = await fetchTimetable(yyyymm(cursor));
+    Object.assign(map, monthMap);
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+  return map;
+}
+function subjectEmoji(name) {
+  const n = String(name).trim();
+  const map = [
+    ['국어','📖'], ['수학','➗'], ['사회','🌏'], ['과학','🔬'], ['영어','🔤'],
+    ['음악','🎵'], ['미술','🎨'], ['체육','⚽'], ['실과','🛠'], ['도덕','🤝'],
+    ['창체','✨'], ['창의','✨'], ['진로','🧭'], ['자율','🌱'], ['동아리','🎒'],
+    ['안전','🛡'], ['보건','🩺'], ['정보','💻']
+  ];
+  for (const [k,v] of map) if (n.includes(k)) return v;
+  return '✏️';
+}
+async function renderTimetableDay() {
+  const el = document.getElementById('moduleContent');
+  el.innerHTML = '<div class="today-card"><div style="text-align:center">시간표 불러오는 중<span class="spinner"></span></div></div>';
+
+  const ym = yyyymm(state.timetable.date);
+  const table = await fetchTimetable(ym);
+  const dates = Object.keys(table).sort();
+
+  if (dates.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="emoji">📚</div><p>이 달의 시간표 정보가 없어요<br>학년·반 설정을 확인하세요</p></div>`;
+    return;
+  }
+
+  let ds = yyyymmdd(state.timetable.date);
+  if (!table[ds]) {
+    const todayStr = yyyymmdd(new Date());
+    ds = dates.find(d => d >= todayStr) || dates[0];
+    state.timetable.date = dateFromYmd(ds);
+  }
+
+  const idx = dates.indexOf(ds);
+  const prev = idx > 0 ? dates[idx-1] : null;
+  const next = idx >= 0 && idx < dates.length-1 ? dates[idx+1] : null;
+  const d = dateFromYmd(ds);
+  const list = table[ds] || [];
+
+  el.innerHTML = `
+    <div class="today-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <button class="nav-btn" ${!prev ? 'disabled' : ''} onclick="${prev ? `navTimetableDay('${prev}')` : ''}">‹ 이전</button>
+        <div style="text-align:center">
+          <div class="today-date">${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${dayName(d)})</div>
+          ${yyyymmdd(new Date()) === ds ? '<span class="info-badge">오늘</span>' : ''}
+        </div>
+        <button class="nav-btn" ${!next ? 'disabled' : ''} onclick="${next ? `navTimetableDay('${next}')` : ''}">다음 ›</button>
+      </div>
+      <div class="period-list">
+        ${list.map(item => `
+          <div class="period-item">
+            <span class="period-badge">${item.period}교시</span>
+            <span class="subject-emoji">${subjectEmoji(item.subject)}</span>
+            <span class="subject-name">${esc(item.subject)}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+function navTimetableDay(ds) {
+  state.timetable.date = dateFromYmd(ds);
+  renderModule();
+}
+async function renderTimetableWeek() {
+  const el = document.getElementById('moduleContent');
+  el.innerHTML = '<div class="week-card"><div style="text-align:center">주간 시간표 불러오는 중<span class="spinner"></span></div></div>';
+
+  const monday = mondayOf(state.timetable.date);
+  const friday = addDays(monday, 4);
+  const data = await getTimetableForRange(monday, friday);
+  const days = Array.from({ length: 5 }, (_, i) => addDays(monday, i));
+  const maxPeriod = Math.max(6, ...days.map(d => (data[yyyymmdd(d)] || []).reduce((m, x) => Math.max(m, x.period), 0)));
+  const todayStr = yyyymmdd(new Date());
+
+  let rows = '';
+  for (let p = 1; p <= maxPeriod; p++) {
+    rows += `<tr><td class="period-head">${p}교시</td>`;
+    days.forEach(d => {
+      const ds = yyyymmdd(d);
+      const item = (data[ds] || []).find(x => x.period === p);
+      rows += `<td class="${!item ? 'empty' : ''} ${ds === todayStr ? 'today-col' : ''}">${item ? `${subjectEmoji(item.subject)}<br>${esc(item.subject)}` : '-'}</td>`;
+    });
+    rows += `</tr>`;
+  }
+
+  el.innerHTML = `
+    <div class="week-card">
+      <div class="week-nav">
+        <button class="nav-btn" onclick="moveTimetableWeek(-7)">‹ 이전</button>
+        <div class="week-title">${monday.getMonth()+1}/${monday.getDate()} ~ ${friday.getMonth()+1}/${friday.getDate()}</div>
+        <button class="nav-btn" onclick="moveTimetableWeek(7)">다음 ›</button>
+      </div>
+      <div class="week-table-wrap">
+        <table class="week-table">
+          <thead>
+            <tr>
+              <th></th>
+              ${days.map(d => `<th>${d.getMonth()+1}/${d.getDate()}(${dayName(d)})</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+function moveTimetableWeek(delta) {
+  state.timetable.date = addDays(state.timetable.date, delta);
+  renderModule();
+}
+async function renderTimetableCalendar() {
+  const el = document.getElementById('moduleContent');
+  el.innerHTML = '<div class="calendar-grid"><div style="text-align:center;padding:20px">시간표 불러오는 중<span class="spinner"></span></div></div>';
+  const data = await fetchTimetable(yyyymm(state.timetable.date));
+  el.innerHTML = renderMonthCalendar({
+    date: state.timetable.date,
+    dataMap: data,
+    mode: 'timetable',
+    cols: 5,
+    selectedDay: state.timetable.selectedDay
+  });
+}
+function selectTimetableDay(ds) {
+  state.timetable.selectedDay = state.timetable.selectedDay === ds ? null : ds;
+  renderTimetableCalendar();
+}
+function renderTimetableSetup() {
+  const c = state.timetable.classSetting;
+  document.getElementById('moduleContent').innerHTML = `
+    <div class="setup-card">
+      <div class="setup-title">⚙️ 학급 설정</div>
+      <div class="setting-row">
+        <select class="select-input" id="gradeInput">
+          ${[1,2,3,4,5,6].map(n => `<option value="${n}" ${String(n) === c.grade ? 'selected' : ''}>${n}학년</option>`).join('')}
+        </select>
+        <input class="number-input" id="classInput" type="number" min="1" max="20" value="${esc(c.classNm)}" placeholder="반">
+      </div>
+      <button class="save-btn" onclick="saveClassSetting()">✅ 설정 저장하기</button>
+      <div class="help-card">
+        📌 NEIS 시간표는 학교에서 등록한 학년·반 정보가 있을 때 조회됩니다.<br>
+        조회가 안 되면 학년과 반을 다시 확인해 주세요.
+      </div>
+    </div>
+  `;
+}
+function saveClassSetting() {
+  const grade = document.getElementById('gradeInput').value;
+  const classNm = String(document.getElementById('classInput').value || '1').trim();
+  state.timetable.classSetting = { grade, classNm };
+  localStorage.setItem('eduHub_classSetting', JSON.stringify(state.timetable.classSetting));
+  state.timetable.cache = {};
+  updateClassDisplay();
+  showToast('학급 설정이 저장되었어요');
+  state.timetable.view = 'day';
+  renderModule();
+}
+
+/* 급식 */
+async function fetchMeals(yearMonth) {
+  const cacheKey = `${state.school.SD_SCHUL_CODE}_${yearMonth}`;
+  if (state.meal.cache[cacheKey]) return state.meal.cache[cacheKey];
+
+  const lastDay = lastDayOfMonth(yearMonth);
+  const fromYmd = `${yearMonth}01`;
+  const toYmd = `${yearMonth}${String(lastDay).padStart(2, '0')}`;
+
+  const url = `https://open.neis.go.kr/hub/mealServiceDietInfo?KEY=${NEIS_KEY}&Type=json&pIndex=1&pSize=100`
+    + `&ATPT_OFCDC_SC_CODE=${encodeURIComponent(state.school.ATPT_OFCDC_SC_CODE)}`
+    + `&SD_SCHUL_CODE=${encodeURIComponent(state.school.SD_SCHUL_CODE)}`
+    + `&MLSV_FROM_YMD=${fromYmd}`
+    + `&MLSV_TO_YMD=${toYmd}`;
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.RESULT) {
+      state.meal.cache[cacheKey] = {};
+      return {};
+    }
+    const rows = data?.mealServiceDietInfo?.[1]?.row || [];
+    const map = {};
+    rows.forEach(r => {
+      map[r.MLSV_YMD] = {
+        menus: (r.DDISH_NM || '').split('<br/>').map(m => m.trim()).filter(Boolean),
+        cal: r.CAL_INFO || '',
+        ntr: r.NTR_INFO || ''
+      };
+    });
+    state.meal.cache[cacheKey] = map;
+    return map;
+  } catch(e) {
+    showToast('급식을 불러오지 못했어요');
+    return {};
+  }
+}
+function mealEmoji(name) {
+  const n = String(name).replace(/\(.*?\)/g,'').trim();
+  const map = [
+    ['밥','🍚'], ['죽','🥣'], ['국','🍲'], ['탕','🍲'], ['찌개','🍲'], ['김치','🥬'],
+    ['불고기','🥩'], ['갈비','🥩'], ['삼겹','🥓'], ['돼지','🐷'], ['닭','🍗'],
+    ['생선','🐟'], ['고등어','🐟'], ['참치','🐟'], ['새우','🦐'], ['오징어','🦑'],
+    ['계란','🥚'], ['달걀','🥚'], ['두부','🟨'], ['카레','🍛'], ['볶음밥','🍳'],
+    ['비빔밥','🥗'], ['볶음','🍳'], ['무침','🥗'], ['조림','🍳'], ['구이','🔥'],
+    ['튀김','🍟'], ['전','🥞'], ['떡','🍡'], ['라면','🍜'], ['국수','🍜'],
+    ['파스타','🍝'], ['우동','🍜'], ['샐러드','🥗'], ['과일','🍎'], ['요구르트','🥛'],
+    ['우유','🥛'], ['빵','🍞'], ['케이크','🎂'], ['아이스','🍦'], ['피자','🍕'],
+    ['샌드위치','🥪'], ['햄버거','🍔'], ['소시지','🌭']
+  ];
+  for (const [k,v] of map) if (n.includes(k)) return v;
+  return '🍽';
+}
+async function renderMealDay() {
+  const el = document.getElementById('moduleContent');
+  el.innerHTML = '<div class="today-card"><div style="text-align:center">급식 불러오는 중<span class="spinner"></span></div></div>';
+
+  const meals = await fetchMeals(yyyymm(state.meal.date));
+  const dates = Object.keys(meals).sort();
+
+  if (dates.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="emoji">🍱</div><p>이 달의 급식 정보가 없어요</p></div>`;
+    return;
+  }
+
+  let ds = yyyymmdd(state.meal.date);
+  if (!meals[ds]) {
+    const todayStr = yyyymmdd(new Date());
+    ds = dates.find(d => d >= todayStr) || dates[0];
+    state.meal.date = dateFromYmd(ds);
+  }
+
+  const idx = dates.indexOf(ds);
+  const prev = idx > 0 ? dates[idx-1] : null;
+  const next = idx >= 0 && idx < dates.length-1 ? dates[idx+1] : null;
+  const d = dateFromYmd(ds);
+  const meal = meals[ds];
+
+  el.innerHTML = `
+    <div class="today-card">
+      ${meal.menus.some(m => hasMyAllergy(m)) && myAllergies.size > 0 ? `<div class="allergy-info-card">⚠️ 오늘 메뉴에 설정하신 알러지 성분이 포함되어 있어요.</div>` : ''}
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <button class="nav-btn" ${!prev ? 'disabled' : ''} onclick="${prev ? `navMealDay('${prev}')` : ''}">‹ 이전</button>
+        <div style="text-align:center">
+          <div class="today-date">${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${dayName(d)})</div>
+          ${yyyymmdd(new Date()) === ds ? '<span class="info-badge">오늘</span>' : ''}
+        </div>
+        <button class="nav-btn" ${!next ? 'disabled' : ''} onclick="${next ? `navMealDay('${next}')` : ''}">다음 ›</button>
+      </div>
+      <div class="menu-list">
+        ${meal.menus.map(renderMenuItem).join('')}
+      </div>
+      ${meal.cal ? `<div style="margin-top:10px"><span class="calorie-badge">🔥 ${esc(meal.cal)}</span></div>` : ''}
+    </div>
+  `;
+}
+function navMealDay(ds) {
+  state.meal.date = dateFromYmd(ds);
+  renderModule();
+}
+function renderMenuItem(menuStr) {
+  const allergy = menuStr.match(/\(([^)]+)\)/)?.[1] || '';
+  const name = menuStr.replace(/\(.*?\)/g,'').trim();
+  const isAlert = hasMyAllergy(menuStr);
+  const matched = isAlert ? matchingAllergies(menuStr) : [];
+
+  return `
+    <div class="menu-item ${isAlert ? 'allergy-alert' : ''}">
+      <span class="menu-emoji">${mealEmoji(name)}</span>
+      <span class="menu-name">${esc(name)}${isAlert ? ' ⚠️' : ''}</span>
+      ${isAlert ? `<span class="menu-allergy alert">${esc(matched.join(', '))}</span>` : (allergy ? `<span class="menu-allergy">${esc(allergy)}</span>` : '')}
+    </div>`;
+}
+async function renderMealCalendar() {
+  const el = document.getElementById('moduleContent');
+  el.innerHTML = '<div class="calendar-grid"><div style="text-align:center;padding:20px">급식 불러오는 중<span class="spinner"></span></div></div>';
+  const meals = await fetchMeals(yyyymm(state.meal.date));
+  el.innerHTML = renderMonthCalendar({
+    date: state.meal.date,
+    dataMap: meals,
+    mode: 'meal',
+    cols: 5,
+    selectedDay: state.meal.selectedDay
+  });
+}
+function selectMealDay(ds) {
+  state.meal.selectedDay = state.meal.selectedDay === ds ? null : ds;
+  renderMealCalendar();
+}
+
+/* 공통 달력 렌더러 */
+function renderMonthCalendar({ date, dataMap, mode, cols, selectedDay }) {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const todayStr = yyyymmdd(new Date());
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  if (cols === 7) {
+    return renderSevenColumnCalendar(year, month, daysInMonth, dataMap, mode, selectedDay, todayStr);
+  }
+  return renderFiveColumnCalendar(year, month, daysInMonth, dataMap, mode, selectedDay, todayStr);
+}
+function renderSevenColumnCalendar(year, month, daysInMonth, dataMap, mode, selectedDay, todayStr) {
+  const firstDay = new Date(year, month, 1).getDay();
+  const labels = ['일','월','화','수','목','금','토'];
+  const cellArr = [];
+
+  for (let i = 0; i < firstDay; i++) {
+    cellArr.push(`<div class="cal-cell no-data" style="visibility:hidden"></div>`);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateObj = new Date(year, month, d);
+    const dow = dateObj.getDay();
+    const ds = yyyymmdd(dateObj);
+    const events = dataMap[ds] || [];
+    const isToday = ds === todayStr;
+    const isSelected = selectedDay === ds;
+    cellArr.push(`<div class="cal-cell ${dow===0?'sun':''} ${dow===6?'sat':''} ${isToday?'today':''} ${isSelected?'selected':''}" onclick="selectScheduleDay('${ds}')">
+      <div class="cal-date">${d}</div>
+      <div class="cal-preview">
+        ${events.slice(0,2).map(ev => `<span class="event-pill">${esc(ev.name)}</span>`).join('')}
+        ${events.length > 2 ? `<span class="cal-more">+${events.length-2}개</span>` : ''}
+      </div>
+    </div>`);
+  }
+
+  const remaining = (7 - (cellArr.length % 7)) % 7;
+  for (let i = 0; i < remaining; i++) {
+    cellArr.push(`<div class="cal-cell no-data" style="visibility:hidden"></div>`);
+  }
+
+  const weekRows = [];
+  for (let i = 0; i < cellArr.length; i += 7) {
+    weekRows.push(`<div class="cal-week cols-7">${cellArr.slice(i, i + 7).join('')}</div>`);
+  }
+
+  const detail = selectedDay && dataMap[selectedDay]
+    ? `<div class="detail-card">
+        <div class="detail-date">${formatDateLabel(selectedDay)} 일정</div>
+        <div class="event-list">${dataMap[selectedDay].map(renderEventCard).join('')}</div>
+      </div>`
+    : '';
+
+  return `
+    <div class="calendar-grid">
+      <div class="cal-header cols-7">${labels.map((l,i)=>`<div class="cal-day-label ${i===0?'sun':''} ${i===6?'sat':''}">${l}</div>`).join('')}</div>
+      <div class="cal-weeks">${weekRows.join('')}</div>
+      ${detail}
+    </div>`;
+}
+
+function renderFiveColumnCalendar(year, month, daysInMonth, dataMap, mode, selectedDay, todayStr) {
+  const labels = ['월','화','수','목','금'];
+  const weeks = [];
+  let week = [];
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dd = new Date(year, month, d);
+    const dow = dd.getDay();
+    if (dow === 0 || dow === 6) continue;
+    week.push(dd);
+    if (dow === 5) { weeks.push(week); week = []; }
+  }
+  if (week.length > 0) weeks.push(week);
+
+  const weeksHtml = weeks.map(w => {
+    const cells = Array(5).fill(null);
+    w.forEach(d => { cells[d.getDay() - 1] = d; });
+
+    return `<div class="cal-week cols-5">${cells.map(d => {
+      if (!d) return `<div class="cal-cell no-data" style="visibility:hidden"></div>`;
+      const ds = yyyymmdd(d);
+      const data = dataMap[ds];
+      const isToday = ds === todayStr;
+      const isSelected = selectedDay === ds;
+      const hasAllergyDay = mode === 'meal' && data && myAllergies.size > 0 && data.menus.some(m => hasMyAllergy(m));
+      const click = mode === 'meal' ? `selectMealDay('${ds}')` : `selectTimetableDay('${ds}')`;
+      return `<div class="cal-cell ${isToday?'today':''} ${isSelected?'selected':''}" onclick="${click}">
+        <div class="cal-date">${d.getDate()}${hasAllergyDay ? '<span class="cal-allergy-dot"></span>' : ''}</div>
+        <div class="cal-preview">${renderCalendarPreview(mode, data)}</div>
+      </div>`;
+    }).join('')}</div>`;
+  }).join('');
+
+  const detail = selectedDay && dataMap[selectedDay]
+    ? renderFiveColumnDetail(mode, selectedDay, dataMap[selectedDay])
+    : '';
+
+  return `
+    <div class="calendar-grid">
+      <div class="cal-header cols-5">${labels.map(l=>`<div class="cal-day-label">${l}</div>`).join('')}</div>
+      <div class="cal-weeks">${weeksHtml}</div>
+      ${detail}
+    </div>`;
+}
+function renderCalendarPreview(mode, data) {
+  if (!data) return `<span style="font-size:9px;color:#ccc;text-align:center">정보없음</span>`;
+
+  if (mode === 'timetable') {
+    return data.slice(0,5).map(item => `<span class="event-pill">${esc(item.period)}교시 ${esc(item.subject)}</span>`).join('');
+  }
+
+  if (mode === 'meal') {
+    return data.menus.slice(0,4).map(m => {
+      const name = m.replace(/\(.*?\)/g,'').trim();
+      return `<span class="event-pill ${hasMyAllergy(m) ? 'allergy-menu-text' : ''}">${esc(name)}</span>`;
+    }).join('');
+  }
+
+  return '';
+}
+function renderFiveColumnDetail(mode, selectedDay, data) {
+  if (mode === 'timetable') {
+    return `<div class="detail-card">
+      <div class="detail-date">${formatDateLabel(selectedDay)} 시간표</div>
+      <div class="period-list">
+        ${data.map(item => `
+          <div class="period-item" style="animation:none">
+            <span class="period-badge">${item.period}교시</span>
+            <span class="subject-emoji">${subjectEmoji(item.subject)}</span>
+            <span class="subject-name">${esc(item.subject)}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+  }
+
+  return `<div class="detail-card">
+    <div class="detail-date">${formatDateLabel(selectedDay)} 급식</div>
+    <div class="menu-list">${data.menus.map(renderMenuItem).join('')}</div>
+    ${data.cal ? `<div style="margin-top:10px"><span class="calorie-badge">🔥 ${esc(data.cal)}</span></div>` : ''}
+  </div>`;
+}
+function chunkCells(cellsHtml, cols, className) {
+  const parts = cellsHtml.split('</div>').filter(Boolean).map(x => x + '</div>');
+  const weeks = [];
+  for (let i = 0; i < parts.length; i += cols) {
+    weeks.push(`<div class="cal-week ${className}">${parts.slice(i, i + cols).join('')}</div>`);
+  }
+  return weeks.join('');
+}
+function formatDateLabel(ds) {
+  const d = dateFromYmd(ds);
+  return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${dayName(d)})`;
+}
+
+/* 알러지 */
+const ALLERGY_MAP = [
+  { num: 1, name: '난류', emoji: '🥚' },
+  { num: 2, name: '우유', emoji: '🥛' },
+  { num: 3, name: '메밀', emoji: '🌾' },
+  { num: 4, name: '땅콩', emoji: '🥜' },
+  { num: 5, name: '대두', emoji: '🫘' },
+  { num: 6, name: '밀', emoji: '🍞' },
+  { num: 7, name: '고등어', emoji: '🐟' },
+  { num: 8, name: '게', emoji: '🦀' },
+  { num: 9, name: '새우', emoji: '🦐' },
+  { num: 10, name: '돼지고기', emoji: '🐷' },
+  { num: 11, name: '복숭아', emoji: '🍑' },
+  { num: 12, name: '토마토', emoji: '🍅' },
+  { num: 13, name: '아황산류', emoji: '⚗️' },
+  { num: 14, name: '호두', emoji: '🌰' },
+  { num: 15, name: '닭고기', emoji: '🍗' },
+  { num: 16, name: '쇠고기', emoji: '🥩' },
+  { num: 17, name: '오징어', emoji: '🦑' },
+  { num: 18, name: '조개류', emoji: '🐚' }
+];
+
+let myAllergies = new Set(JSON.parse(localStorage.getItem('eduHub_myAllergies') || '[]'));
+
+function parseAllergyNums(menuStr) {
+  const m = String(menuStr).match(/\(([^)]+)\)/);
+  if (!m) return new Set();
+  return new Set(m[1].split('.').map(n => parseInt(n, 10)).filter(n => !isNaN(n)));
+}
+function hasMyAllergy(menuStr) {
+  if (myAllergies.size === 0) return false;
+  const nums = parseAllergyNums(menuStr);
+  for (const n of myAllergies) if (nums.has(n)) return true;
+  return false;
+}
+function matchingAllergies(menuStr) {
+  const nums = parseAllergyNums(menuStr);
+  const matched = [];
+  for (const n of myAllergies) {
+    if (nums.has(n)) {
+      const info = ALLERGY_MAP.find(a => a.num === n);
+      if (info) matched.push(info.name);
+    }
+  }
+  return matched;
+}
+function updateAllergyBadgeBar(el, prefixHtml = '') {
+  if (myAllergies.size === 0) {
+    el.innerHTML = prefixHtml + `<span class="allergy-none-badge">⚠️ 알러지 미설정</span>`;
+    return;
+  }
+  const badges = [...myAllergies].map(n => {
+    const info = ALLERGY_MAP.find(a => a.num === n);
+    return info ? `<span class="allergy-active-badge">${info.emoji} ${info.name}</span>` : '';
+  }).join('');
+  el.innerHTML = prefixHtml + badges;
+}
+function renderAllergyPage() {
+  const chipsHtml = ALLERGY_MAP.map(a => `
+    <div class="allergy-chip ${myAllergies.has(a.num) ? 'selected' : ''}"
+         onclick="toggleAllergy(${a.num})" id="chip-${a.num}">
+      <span class="allergy-chip-emoji">${a.emoji}</span>
+      <span class="allergy-chip-name">${a.name}</span>
+      <span class="allergy-chip-num">${a.num}번</span>
+    </div>
+  `).join('');
+
+  document.getElementById('moduleContent').innerHTML = `
+    <div class="today-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="font-size:24px">⚠️</span>
+        <div>
+          <div style="font-family:'Black Han Sans',sans-serif;font-size:16px">알러지 설정</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">해당하는 알러지를 모두 선택하세요</div>
+        </div>
+      </div>
+      <div class="help-card">
+        📌 선택한 알러지 성분이 포함된 메뉴는 <strong>빨간색</strong>으로 표시됩니다.<br>
+        NEIS 알러지 번호 기준으로 확인합니다.
+      </div>
+      <div class="allergy-section-title">🔍 알러지 항목 선택</div>
+      <div class="allergy-grid">${chipsHtml}</div>
+      <button class="allergy-save-btn" onclick="saveAllergySettings()">✅ 설정 저장하기</button>
+    </div>
+  `;
+}
+function toggleAllergy(num) {
+  const chip = document.getElementById('chip-' + num);
+  if (myAllergies.has(num)) {
+    myAllergies.delete(num);
+    chip.classList.remove('selected');
+  } else {
+    myAllergies.add(num);
+    chip.classList.add('selected');
+  }
+}
+function saveAllergySettings() {
+  localStorage.setItem('eduHub_myAllergies', JSON.stringify([...myAllergies]));
+  showToast('알러지 설정이 저장되었어요');
+  state.meal.view = 'day';
+  renderModule();
+}
+
+/* Toast */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+</script>
+</body>
+</html>
