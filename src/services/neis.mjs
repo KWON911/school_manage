@@ -19,16 +19,28 @@ function rowsFrom(body, endpoint) {
 }
 
 async function requestRows(endpoint, params) {
+  let response;
   try {
-    const response = await fetch(createUrl(endpoint, params));
-    if (!response.ok) return { status: 'server-error', rows: [] };
-
-    const body = await response.json();
-    const rows = rowsFrom(body, endpoint);
-    return rows.length > 0 ? { status: 'ok', rows } : { status: 'no-data', rows: [] };
-  } catch (error) {
+    response = await fetch(createUrl(endpoint, params));
+  } catch {
     return { status: 'network-error', rows: [] };
   }
+
+  if (!response.ok) return { status: 'server-error', rows: [] };
+
+  let body;
+  try {
+    body = await response.json();
+  } catch {
+    return { status: 'server-error', rows: [] };
+  }
+
+  if (body?.RESULT || !Array.isArray(body?.[endpoint])) {
+    return { status: 'server-error', rows: [] };
+  }
+
+  const rows = rowsFrom(body, endpoint);
+  return rows.length > 0 ? { status: 'ok', rows } : { status: 'no-data', rows: [] };
 }
 
 function monthRange(yearMonth) {

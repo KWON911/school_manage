@@ -77,11 +77,11 @@ test('does not make a request for an unsupported school kind', async () => {
   }
 });
 
-test('turns empty upstream data and failed proxy responses into displayable statuses', async () => {
+test('turns a valid successful empty row list and failed proxy responses into displayable statuses', async () => {
   const { fetchMeals } = await import('../src/services/neis.mjs');
   const originalFetch = globalThis.fetch;
   const responses = [
-    new Response(JSON.stringify({ RESULT: { CODE: 'INFO-200' } }), { status: 200 }),
+    new Response(JSON.stringify({ mealServiceDietInfo: [{ head: [] }] }), { status: 200 }),
     new Response('upstream unavailable', { status: 503 })
   ];
   globalThis.fetch = async () => responses.shift();
@@ -90,6 +90,36 @@ test('turns empty upstream data and failed proxy responses into displayable stat
   try {
     assert.deepEqual(await fetchMeals(school, '202608'), { status: 'no-data', rows: [] });
     assert.deepEqual(await fetchMeals(school, '202608'), { status: 'server-error', rows: [] });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('treats malformed JSON from a successful proxy response as a server error', async () => {
+  const { fetchMeals } = await import('../src/services/neis.mjs');
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('{not json', { status: 200 });
+
+  try {
+    assert.deepEqual(await fetchMeals({ ATPT_OFCDC_SC_CODE: 'B10', SD_SCHUL_CODE: '2' }, '202608'), {
+      status: 'server-error', rows: []
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('treats a NEIS RESULT error payload without rows as a server error', async () => {
+  const { fetchMeals } = await import('../src/services/neis.mjs');
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    RESULT: { CODE: 'ERROR-300', MESSAGE: 'invalid request' }
+  }), { status: 200 });
+
+  try {
+    assert.deepEqual(await fetchMeals({ ATPT_OFCDC_SC_CODE: 'B10', SD_SCHUL_CODE: '2' }, '202608'), {
+      status: 'server-error', rows: []
+    });
   } finally {
     globalThis.fetch = originalFetch;
   }
