@@ -194,6 +194,23 @@ test('settings provides a Google Calendar connection control', () => {
   assert.match(markup, /data-action="connect-google-calendar"/);
 });
 
+test('settings presents a multiple calendar selector and preserves selected calendar ids', () => {
+  const draft = { ...completeDraft, calendarIds: ['family-calendar'] };
+  const markup = renderSettingsMarkup({
+    draft,
+    results: [],
+    calendarStatus: 'connected',
+    calendarOptions: [
+      { id: 'primary', summary: '내 캘린더', primary: true },
+      { id: 'family-calendar', summary: '가족 일정' }
+    ]
+  });
+
+  assert.match(markup, /<select[^>]*name="settingsCalendarIds"[^>]*multiple/);
+  assert.match(markup, /value="family-calendar" selected>가족 일정/);
+  assert.deepEqual(createProfileCandidate(draft), draft);
+});
+
 test('saving a changed school clears cached view data and persists only the complete profile', () => {
   const entries = new Map();
   const storage = {

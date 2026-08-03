@@ -39,6 +39,12 @@ function normalizeClassSetting(classSetting) {
   return classSetting;
 }
 
+function normalizeCalendarIds(calendarIds) {
+  return [...new Set((Array.isArray(calendarIds) ? calendarIds : [])
+    .filter((id) => typeof id === 'string' && id.trim())
+    .map((id) => id.trim()))];
+}
+
 function normalizeProfile(profile) {
   if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return null;
 
@@ -46,7 +52,8 @@ function normalizeProfile(profile) {
     role: nonEmptyString(profile.role),
     school: normalizeSchool(profile.school),
     classSetting: normalizeClassSetting(profile.classSetting),
-    allergies: Array.isArray(profile.allergies) ? profile.allergies : []
+    allergies: Array.isArray(profile.allergies) ? profile.allergies : [],
+    ...(Array.isArray(profile.calendarIds) ? { calendarIds: normalizeCalendarIds(profile.calendarIds) } : {})
   };
 }
 

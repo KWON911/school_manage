@@ -11,6 +11,13 @@ test('Google OAuth uses the registered callback route instead of an action query
   assert.match(source, /https:\/\/school-life-info\.vercel\.app\/api\/google-calendar\/callback/);
 });
 
+test('Google Calendar server exposes calendar-list and selected calendar event requests', async () => {
+  const source = await readFile(new URL('../api/google-calendar.js', import.meta.url), 'utf8');
+  assert.match(source, /action === 'calendar-list'/);
+  assert.match(source, /calendarList/);
+  assert.match(source, /calendarIds/);
+});
+
 test('allows middle and high school timetable endpoints with the elementary timetable parameters', () => {
   assert.equal(isAllowedEndpoint('misTimetable'), true);
   assert.equal(isAllowedEndpoint('hisTimetable'), true);

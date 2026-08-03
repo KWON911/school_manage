@@ -11,9 +11,22 @@ export async function fetchCalendarStatus() {
   }
 }
 
-export async function fetchCalendarEvents(from, to) {
+export async function fetchCalendarList() {
+  try {
+    const response = await fetch(`${CALENDAR_PATH}?action=calendar-list`, { credentials: 'same-origin' });
+    if (response.status === 401) return { status: 'not-connected', rows: [] };
+    if (!response.ok) return { status: 'server-error', rows: [] };
+    const body = await response.json();
+    return { status: 'ok', rows: Array.isArray(body?.calendars) ? body.calendars : [] };
+  } catch {
+    return { status: 'network-error', rows: [] };
+  }
+}
+
+export async function fetchCalendarEvents(from, to, calendarIds = []) {
   try {
     const query = new URLSearchParams({ action: 'events', from, to });
+    if (Array.isArray(calendarIds) && calendarIds.length > 0) query.set('calendarIds', calendarIds.join(','));
     const response = await fetch(`${CALENDAR_PATH}?${query}`, { credentials: 'same-origin' });
     if (response.status === 401) return { status: 'not-connected', rows: [] };
     if (!response.ok) return { status: 'server-error', rows: [] };

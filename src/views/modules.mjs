@@ -349,7 +349,7 @@ function createModule(container, context, kind) {
       request = context.profile?.school?.kind
         ? Promise.all([
           services.fetchSchedule(context.profile.school, monthKey(selectedDate)),
-          services.fetchCalendarEvents(dateKey(selectedDate), lastDateKey(selectedDate))
+          services.fetchCalendarEvents(dateKey(selectedDate), lastDateKey(selectedDate), context.profile?.calendarIds)
         ]).then(([schedule, calendar]) => combinedScheduleResult(schedule, calendar))
         : Promise.resolve({ status: 'missing-school', rows: [] });
     } else if (kind === 'meals') {

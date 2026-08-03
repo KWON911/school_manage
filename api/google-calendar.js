@@ -109,14 +109,34 @@ function requestedRange(req) {
   };
 }
 
-async function eventsFor(session, req) {
-  const range = requestedRange(req);
+function selectedCalendarIds(req) {
+  const ids = String(req.query.calendarIds ?? '').split(',').map((id) => id.trim()).filter(Boolean);
+  return [...new Set(ids)].slice(0, 20);
+}
+
+async function calendarListList(session) {
+  const response = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=reader', {
+    headers: { Authorization: `Bearer ${session.access_token}` }
+  });
+  if (response.status === 401) return { unauthorized: true, calendars: [] };
+  if (!response.ok) throw new Error('Google calendarList.list failed');
+  const body = await response.json();
+  return {
+    calendars: (body.items ?? []).map((calendar) => ({
+      id: calendar.id,
+      summary: calendar.summary || '이름 없는 캘린더',
+      primary: calendar.primary === true
+    })).filter((calendar) => calendar.id)
+  };
+}
+
+async function calendarEventsList(session, calendarId, range) {
   const query = new URLSearchParams({ ...range, singleEvents: 'true', orderBy: 'startTime', maxResults: '20' });
-  const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${query}`, {
+  const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${query}`, {
     headers: { Authorization: `Bearer ${session.access_token}` }
   });
   if (response.status === 401) return { unauthorized: true, events: [] };
-  if (!response.ok) throw new Error('Google Calendar request failed');
+  if (!response.ok) throw new Error('Google calendar.events.list failed');
   const body = await response.json();
   return {
     events: (body.items ?? []).map((item) => {
@@ -124,10 +144,20 @@ async function eventsFor(session, req) {
       return {
         start,
         title: item.summary || '제목 없는 개인 일정',
-        timeLabel: item.start?.dateTime ? String(item.start.dateTime).slice(11, 16) : '종일'
+        timeLabel: item.start?.dateTime ? String(item.start.dateTime).slice(11, 16) : '종일',
+        calendarId
       };
     }).filter((item) => item.start)
   };
+}
+
+async function eventsFor(session, req) {
+  const range = requestedRange(req);
+  const calendarIds = selectedCalendarIds(req);
+  const targets = calendarIds.length > 0 ? calendarIds : ['primary'];
+  const results = await Promise.all(targets.map((calendarId) => calendarEventsList(session, calendarId, range)));
+  if (results.some((result) => result.unauthorized)) return { unauthorized: true, events: [] };
+  return { events: results.flatMap((result) => result.events) };
 }
 
 module.exports = async function handler(req, res) {
@@ -177,6 +207,19 @@ module.exports = async function handler(req, res) {
   if (action === 'disconnect' && req.method === 'POST') {
     res.setHeader('Set-Cookie', cookie(COOKIE_NAME, '', 0));
     return respondJson(res, 200, { disconnected: true });
+  }
+
+  if (action === 'calendar-list' && req.method === 'GET') {
+    const session = await usableToken(decrypt(readCookies(req)[COOKIE_NAME]));
+    if (!session) return respondJson(res, 401, { error: 'Google Calendar is not connected.' });
+    try {
+      const result = await calendarListList(session);
+      if (result.unauthorized) return respondJson(res, 401, { error: 'Google Calendar connection expired.' });
+      res.setHeader('Set-Cookie', cookie(COOKIE_NAME, encrypt(session)));
+      return respondJson(res, 200, { calendars: result.calendars });
+    } catch {
+      return respondJson(res, 502, { error: 'Google Calendar list could not be reached.' });
+    }
   }
 
   if (action === 'events' && req.method === 'GET') {

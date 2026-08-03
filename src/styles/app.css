@@ -896,6 +896,11 @@
 .period-time-row input { min-width: 0; padding: 7px; border: 1px solid var(--line); border-radius: 7px; color: var(--deep); background: var(--surface); font: inherit; }
 .period-time-add { width: 100%; min-height: 40px; margin-top: 8px; border: 1px dashed rgba(30, 57, 50, 0.35); border-radius: 10px; color: var(--green); background: transparent; font: inherit; font-size: 13px; font-weight: 700; }
 
+.calendar-picker { display: grid; gap: 8px; margin-top: 18px; color: var(--deep); font-size: 13px; font-weight: 700; }
+.calendar-picker select { width: 100%; min-height: 128px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: var(--surface); font: inherit; }
+.calendar-picker option { padding: 9px 10px; }
+.calendar-picker__hint { margin: 8px 0 0; color: var(--text-muted); font-size: 12px; }
+
 .allergy-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

@@ -50,7 +50,8 @@ export function createDraft(profile = {}) {
       ? { grade: profile.classSetting.grade ?? '', classNm: profile.classSetting.classNm ?? '' }
       : null,
     allergies: Array.isArray(profile?.allergies) ? [...profile.allergies] : [],
-    periodTimes: Array.isArray(profile?.periodTimes) ? profile.periodTimes.map((item) => ({ ...item })) : null
+    periodTimes: Array.isArray(profile?.periodTimes) ? profile.periodTimes.map((item) => ({ ...item })) : null,
+    calendarIds: Array.isArray(profile?.calendarIds) ? [...new Set(profile.calendarIds.filter((id) => typeof id === 'string' && id.trim()))] : []
   };
 }
 
@@ -68,11 +69,15 @@ export function createProfileCandidate(draft, { skipAllergies = false } = {}) {
     ? []
     : [...new Set((Array.isArray(draft?.allergies) ? draft.allergies : [])
       .filter((value) => ALLERGY_OPTIONS.some(([id]) => id === value)))];
+  const calendarIds = [...new Set((Array.isArray(draft?.calendarIds) ? draft.calendarIds : [])
+    .filter((id) => typeof id === 'string' && id.trim())
+    .map((id) => id.trim()))];
   const profile = {
     role,
     school,
     classSetting: { grade, classNm },
     allergies,
+    ...(calendarIds.length > 0 ? { calendarIds } : {}),
     ...(Array.isArray(draft?.periodTimes) ? { periodTimes: getPeriodTimes(draft.periodTimes).map((item) => ({ ...item })) } : {})
   };
   return isProfileComplete(profile) ? profile : null;

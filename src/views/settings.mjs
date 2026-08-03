@@ -5,6 +5,7 @@ import { searchSchools as requestSchoolSearch } from '../services/neis.mjs';
 import {
   beginGoogleCalendarConnection,
   disconnectGoogleCalendar,
+  fetchCalendarList,
   fetchCalendarStatus
 } from '../services/google-calendar.mjs';
 import {
@@ -42,8 +43,16 @@ function renderPeriodTimeFields(periodTimes) {
   return `<div class="period-time-list">${getPeriodTimes(periodTimes).map((item) => `<div class="period-time-row"><strong>${escapeHtml(item.period)}교시</strong><label>시작 <input type="time" name="settingsPeriod-${escapeHtml(item.period)}-start" value="${escapeHtml(item.start)}"></label><label>종료 <input type="time" name="settingsPeriod-${escapeHtml(item.period)}-end" value="${escapeHtml(item.end)}"></label></div>`).join('')}</div><button class="period-time-add" type="button" data-action="settings-add-period">7·8교시 추가</button>`;
 }
 
-function renderCalendarConnection(status) {
+function renderCalendarConnection(status, calendars = [], selectedIds = []) {
   const connected = status === 'connected';
+  const selected = new Set(selectedIds);
+  const picker = connected && calendars.length > 0
+    ? `<label class="calendar-picker" for="settings-calendar-ids">표시할 캘린더
+        <select id="settings-calendar-ids" name="settingsCalendarIds" multiple size="${Math.min(5, calendars.length)}" aria-describedby="settings-calendar-hint">
+          ${calendars.map((calendar) => `<option value="${escapeHtml(calendar.id)}"${selected.has(calendar.id) ? ' selected' : ''}>${escapeHtml(calendar.summary)}${calendar.primary ? ' (기본)' : ''}</option>`).join('')}
+        </select>
+      </label><p id="settings-calendar-hint" class="calendar-picker__hint">여러 항목을 선택할 수 있어요. 선택 후 설정 저장을 눌러 주세요.</p>`
+    : connected ? '<p class="calendar-picker__hint">캘린더 목록을 불러오는 중이에요.</p>' : '';
   return `<section class="settings-section calendar-connection" aria-labelledby="settings-calendar-title">
     <div class="settings-section__heading">
       <h2 id="settings-calendar-title">Google Calendar</h2>
@@ -53,6 +62,7 @@ function renderCalendarConnection(status) {
       <p class="calendar-connection__status">${connected ? '연결됨 · 개인 일정을 불러오고 있어요.' : '연결하지 않음 · Google 계정에서 읽기 권한을 허용해 주세요.'}</p>
       <button class="button ${connected ? 'button--ghost' : 'button--secondary'}" type="button" data-action="${connected ? 'disconnect-google-calendar' : 'connect-google-calendar'}">${connected ? '연결 해제' : 'Google Calendar 연결'}</button>
     </div>
+    ${picker}
   </section>`;
 }
 
@@ -122,7 +132,7 @@ export function renderSettingsMarkup(state = {}) {
         ${renderPeriodTimeFields(draft.periodTimes)}
       </section>
 
-      ${renderCalendarConnection(state.calendarStatus)}
+      ${renderCalendarConnection(state.calendarStatus, state.calendarOptions, draft.calendarIds)}
 
       <section class="settings-section" aria-labelledby="settings-allergy-title">
         <div class="settings-section__heading">
@@ -188,7 +198,8 @@ export function renderSettings(container, context = {}) {
     results: [],
     errors: {},
     feedback: context.feedback ?? '',
-    calendarStatus: context.calendarStatus ?? 'unknown'
+    calendarStatus: context.calendarStatus ?? 'unknown',
+    calendarOptions: context.calendarOptions ?? []
   };
   const render = () => { container.innerHTML = renderSettingsMarkup(state); };
   const storage = context.storage ?? globalThis.localStorage;
@@ -223,6 +234,9 @@ export function renderSettings(container, context = {}) {
       const selected = new Set(state.draft.allergies);
       event.target.checked ? selected.add(event.target.value) : selected.delete(event.target.value);
       state.draft.allergies = [...selected];
+    }
+    if (event.target.name === 'settingsCalendarIds') {
+      state.draft.calendarIds = [...event.target.selectedOptions].map((option) => option.value);
     }
   }
 
@@ -318,6 +332,7 @@ export function renderSettings(container, context = {}) {
   async function disconnectCalendar() {
     const disconnected = await disconnectGoogleCalendar();
     state.calendarStatus = disconnected ? 'disconnected' : 'connected';
+    if (disconnected) state.calendarOptions = [];
     state.feedback = disconnected ? 'Google Calendar 연결을 해제했어요.' : '연결을 해제하지 못했어요. 다시 시도해 주세요.';
     render();
   }
@@ -326,7 +341,15 @@ export function renderSettings(container, context = {}) {
     if (result.status !== 'ok') return;
     state.calendarStatus = result.connected ? 'connected' : 'disconnected';
     render();
+    if (result.connected) void loadCalendars();
   });
+
+  async function loadCalendars() {
+    const result = await fetchCalendarList();
+    if (result.status !== 'ok') return;
+    state.calendarOptions = result.rows;
+    render();
+  }
 
   container.addEventListener('input', onInput);
   container.addEventListener('change', onChange);

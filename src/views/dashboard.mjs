@@ -36,6 +36,10 @@ function dateParts(date) {
   };
 }
 
+function monthEndKey(date) {
+  return dateParts(new Date(date.getFullYear(), date.getMonth() + 1, 0)).key;
+}
+
 function cacheKey(profile, suffix) {
   const school = profile.school ?? {};
   const classSetting = profile.classSetting ?? {};
@@ -250,7 +254,7 @@ export function renderDashboard(container, context = {}) {
         ? cachedRequest(caches.meals, mealKey, () => services.fetchMeals(profile.school, date.month))
         : Promise.resolve({ status: 'no-data', rows: [] }),
       cachedRequest(caches.schedule, cacheKey(profile, date.month), () => services.fetchSchedule(profile.school, date.month)),
-      services.fetchCalendarEvents(date.key, `${date.month}31`)
+      services.fetchCalendarEvents(date.key, monthEndKey(now), profile.calendarIds)
     ]);
     if (destroyed) return;
 
