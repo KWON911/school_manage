@@ -48,10 +48,11 @@ function fullDateLabel(key) {
 function dateToolbar(date, kind) {
   const key = dateKey(date);
   const isTimetable = kind === 'timetable';
+  const isSchedule = kind === 'schedule';
   return `<div class="module-date-toolbar" aria-label="날짜 이동">
-    <button type="button" data-date-action="previous">${isTimetable ? '이전 주' : '이전 날짜'}</button>
+    <button type="button" data-date-action="previous">${isTimetable ? '이전 주' : isSchedule ? '이전 달' : '이전 날짜'}</button>
     <time datetime="${key.slice(0, 4)}-${key.slice(4, 6)}-${key.slice(6)}">${dateLabel(date)}</time>
-    <button type="button" data-date-action="next">${isTimetable ? '다음 주' : '다음 날짜'}</button>
+    <button type="button" data-date-action="next">${isTimetable ? '다음 주' : isSchedule ? '다음 달' : '다음 날짜'}</button>
     <button type="button" data-date-action="today">오늘</button>
   </div>`;
 }
@@ -94,9 +95,9 @@ function combinedScheduleResult(schedule, calendar) {
   return schedule;
 }
 
-function scheduleItems(rows) {
+function scheduleItems(rows, todayKey) {
   if (rows.length === 0) return '<p class="module-empty" role="status">일정이 등록되지 않았어요.</p>';
-  return `<ol class="schedule-list">${rows.map((row) => `<li class="schedule-item${isImportantSchedule(row) ? ' is-important' : ''}">
+  return `<ol class="schedule-list">${rows.map((row) => `<li class="schedule-item${isImportantSchedule(row) ? ' is-important' : ''}${row.AA_YMD === todayKey ? ' is-today' : ''}">
     <time datetime="${String(row.AA_YMD).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')}">${escapeHtml(fullDateLabel(row.AA_YMD))}</time>
     <strong>${escapeHtml(row.EVENT_NM || '학교 일정')}</strong>
     <span class="schedule-item__source" data-source="${row.isPersonal ? 'personal' : 'school'}">${escapeHtml(row.source ?? '학교 일정')}${row.TIME_LABEL ? ` · ${escapeHtml(row.TIME_LABEL)}` : row.isPersonal ? '' : ` · 대상 ${escapeHtml(scheduleGradeLabel(row))}`}</span>
@@ -139,7 +140,7 @@ function resourceState(kind, result) {
   return null;
 }
 
-function renderSchedule(date, mode, result) {
+function renderSchedule(date, mode, result, todayKey) {
   const rows = (result.rows ?? [])
     .filter((row) => dateFromKey(row.AA_YMD))
     .sort((a, b) => String(a.AA_YMD).localeCompare(String(b.AA_YMD)));
@@ -158,11 +159,17 @@ function renderSchedule(date, mode, result) {
       ${calendarDays(date, rows)}
       <section class="selected-day-detail" aria-labelledby="schedule-selected-title">
         <h2 id="schedule-selected-title">선택한 날의 일정</h2>
-        ${scheduleItems(selectedRows)}
+        ${scheduleItems(selectedRows, todayKey)}
       </section>
     </div>`;
   }
-  return `${tabMarkup}<div role="tabpanel" id="schedule-list-panel" aria-labelledby="schedule-list-tab">${scheduleItems(rows)}</div><div role="tabpanel" id="schedule-calendar-panel" aria-labelledby="schedule-calendar-tab" hidden></div>`;
+  return `${tabMarkup}<div role="tabpanel" id="schedule-list-panel" aria-labelledby="schedule-list-tab">${scheduleItems(rows, todayKey)}</div><div role="tabpanel" id="schedule-calendar-panel" aria-labelledby="schedule-calendar-tab" hidden></div>`;
+}
+
+function moveMonth(date, delta) {
+  const targetMonth = date.getMonth() + delta;
+  const lastDay = new Date(date.getFullYear(), targetMonth + 1, 0).getDate();
+  return new Date(date.getFullYear(), targetMonth, Math.min(date.getDate(), lastDay));
 }
 
 function startOfSchoolWeek(date) {
@@ -311,7 +318,7 @@ function createModule(container, context, kind) {
 
   function render() {
     const content = kind === 'schedule'
-      ? renderSchedule(selectedDate, mode, result)
+      ? renderSchedule(selectedDate, mode, result, dateKey(readNow()))
       : kind === 'timetable'
         ? renderTimetable(selectedDate, result, readNow())
         : renderMeals(selectedDate, mode, result, context.profile?.allergies ?? []);
@@ -390,8 +397,12 @@ function createModule(container, context, kind) {
     const control = event.target.closest?.('[data-date-action]');
     if (control) {
       const offset = kind === 'timetable' ? 7 : 1;
-      if (control.dataset.dateAction === 'previous') selectedDate.setDate(selectedDate.getDate() - offset);
-      if (control.dataset.dateAction === 'next') selectedDate.setDate(selectedDate.getDate() + offset);
+      if (control.dataset.dateAction === 'previous') selectedDate = kind === 'schedule'
+        ? moveMonth(selectedDate, -1)
+        : new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() - offset);
+      if (control.dataset.dateAction === 'next') selectedDate = kind === 'schedule'
+        ? moveMonth(selectedDate, 1)
+        : new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() + offset);
       if (control.dataset.dateAction === 'today') selectedDate = readNow();
       load({
         origin: control,

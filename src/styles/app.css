@@ -1120,6 +1120,14 @@
   background: rgba(203, 162, 88, 0.1);
 }
 
+.schedule-item.is-today {
+  margin: 0 -12px;
+  padding-right: 12px;
+  padding-left: 12px;
+  border-left: 4px solid var(--action);
+  background: rgba(212, 233, 226, 0.52);
+}
+
 .schedule-item time,
 .schedule-item span {
   color: var(--text-muted);

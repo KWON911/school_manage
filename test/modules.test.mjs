@@ -76,7 +76,7 @@ test('all school-information modules render the same ordered date toolbar', asyn
     const actions = [...container.innerHTML.matchAll(/data-date-action="([^"]+)"/g)]
       .map((match) => match[1]);
     assert.deepEqual(actions, ['previous', 'next', 'today']);
-    assert.match(container.innerHTML, /data-date-action="previous"[^>]*>이전 (?:날짜|주)<\/button>[\s\S]*<time[^>]*>2026년 8월 3일 \(월\)<\/time>[\s\S]*data-date-action="next"[^>]*>다음 (?:날짜|주)<\/button>[\s\S]*data-date-action="today"[^>]*>오늘<\/button>/);
+    assert.match(container.innerHTML, /data-date-action="previous"[^>]*>이전 (?:날짜|주|달)<\/button>[\s\S]*<time[^>]*>2026년 8월 3일 \(월\)<\/time>[\s\S]*data-date-action="next"[^>]*>다음 (?:날짜|주|달)<\/button>[\s\S]*data-date-action="today"[^>]*>오늘<\/button>/);
   }
 });
 
@@ -192,6 +192,30 @@ test('full schedule combines personal calendar events with school events in list
   container.fire('click', target({ date: '20260804' }));
   assert.match(container.innerHTML, /data-date="20260804"[^>]*class="has-event"/);
   assert.match(container.innerHTML, /선택한 날의 일정[\s\S]*치과 검진/);
+});
+
+test('schedule navigates by month and highlights only today in the list without changing text color', async () => {
+  const container = createContainer();
+  const view = renderScheduleModule(container, {
+    profile: PROFILE,
+    now: new Date(2026, 7, 4),
+    services: {
+      ...emptyServices,
+      fetchSchedule: async () => ({
+        status: 'ok',
+        rows: [
+          { AA_YMD: '20260803', EVENT_NM: '어제 일정' },
+          { AA_YMD: '20260804', EVENT_NM: '오늘 일정' }
+        ]
+      })
+    }
+  });
+  await view.ready;
+
+  assert.match(container.innerHTML, /data-date-action="previous">이전 달/);
+  assert.match(container.innerHTML, /data-date-action="next">다음 달/);
+  assert.match(container.innerHTML, /class="schedule-item is-today"[\s\S]*오늘 일정/);
+  assert.doesNotMatch(container.innerHTML, /class="schedule-item is-today"[\s\S]*color:/);
 });
 
 test.skip('replaced by the always-weekly timetable', async () => {
