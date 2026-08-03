@@ -194,7 +194,7 @@ test('settings provides a Google Calendar connection control', () => {
   assert.match(markup, /data-action="connect-google-calendar"/);
 });
 
-test('settings presents a multiple calendar selector and preserves selected calendar ids', () => {
+test('settings presents a mobile-friendly checkbox calendar dropdown and preserves selected calendar ids', () => {
   const draft = { ...completeDraft, calendarIds: ['family-calendar'] };
   const markup = renderSettingsMarkup({
     draft,
@@ -206,8 +206,9 @@ test('settings presents a multiple calendar selector and preserves selected cale
     ]
   });
 
-  assert.match(markup, /<select[^>]*name="settingsCalendarIds"[^>]*multiple/);
-  assert.match(markup, /value="family-calendar" selected>가족 일정/);
+  assert.match(markup, /<details class="calendar-picker"/);
+  assert.match(markup, /type="checkbox" name="settingsCalendarIds" value="family-calendar" checked/);
+  assert.match(markup, /가족 일정/);
   assert.deepEqual(createProfileCandidate(draft), draft);
 });
 

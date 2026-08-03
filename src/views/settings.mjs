@@ -47,11 +47,12 @@ function renderCalendarConnection(status, calendars = [], selectedIds = []) {
   const connected = status === 'connected';
   const selected = new Set(selectedIds);
   const picker = connected && calendars.length > 0
-    ? `<label class="calendar-picker" for="settings-calendar-ids">표시할 캘린더
-        <select id="settings-calendar-ids" name="settingsCalendarIds" multiple size="${Math.min(5, calendars.length)}" aria-describedby="settings-calendar-hint">
-          ${calendars.map((calendar) => `<option value="${escapeHtml(calendar.id)}"${selected.has(calendar.id) ? ' selected' : ''}>${escapeHtml(calendar.summary)}${calendar.primary ? ' (기본)' : ''}</option>`).join('')}
-        </select>
-      </label><p id="settings-calendar-hint" class="calendar-picker__hint">여러 항목을 선택할 수 있어요. 선택 후 설정 저장을 눌러 주세요.</p>`
+    ? `<details class="calendar-picker">
+        <summary>표시할 캘린더 <span>${selected.size || 0}개 선택</span></summary>
+        <div class="calendar-picker__options" id="settings-calendar-hint">
+          ${calendars.map((calendar) => `<label><input type="checkbox" name="settingsCalendarIds" value="${escapeHtml(calendar.id)}"${selected.has(calendar.id) ? ' checked' : ''}><span>${escapeHtml(calendar.summary)}${calendar.primary ? ' (기본)' : ''}</span></label>`).join('')}
+        </div>
+      </details><p class="calendar-picker__hint">필요한 캘린더를 체크한 뒤 설정 저장을 눌러 주세요.</p>`
     : connected ? '<p class="calendar-picker__hint">캘린더 목록을 불러오는 중이에요.</p>' : '';
   return `<section class="settings-section calendar-connection" aria-labelledby="settings-calendar-title">
     <div class="settings-section__heading">
@@ -236,7 +237,9 @@ export function renderSettings(container, context = {}) {
       state.draft.allergies = [...selected];
     }
     if (event.target.name === 'settingsCalendarIds') {
-      state.draft.calendarIds = [...event.target.selectedOptions].map((option) => option.value);
+      const selected = new Set(state.draft.calendarIds ?? []);
+      event.target.checked ? selected.add(event.target.value) : selected.delete(event.target.value);
+      state.draft.calendarIds = [...selected];
     }
   }
 

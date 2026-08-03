@@ -114,12 +114,15 @@ function calendarDays(date, rows, dateField = 'AA_YMD') {
   const lastDay = new Date(year, month + 1, 0).getDate();
   const selected = dateKey(date);
   const eventDates = new Set(rows.map((row) => row[dateField]));
+  const personalDates = new Set(rows.filter((row) => row.isPersonal).map((row) => row[dateField]));
+  const schoolDates = new Set(rows.filter((row) => !row.isPersonal).map((row) => row[dateField]));
   return `<div class="module-calendar" aria-label="${year}년 ${month + 1}월">
     <div class="module-calendar__weekdays" aria-hidden="true">${WEEKDAYS.map((day) => `<span>${day}</span>`).join('')}</div>
     <div class="module-calendar__days" style="--first-day: ${new Date(year, month, 1).getDay()}">${Array.from({ length: lastDay }, (_, index) => {
       const day = index + 1;
       const key = dateKey(new Date(year, month, day));
-      return `<button type="button" data-date="${key}" aria-pressed="${key === selected}"${eventDates.has(key) ? ' class="has-event"' : ''}><span>${day}</span>${eventDates.has(key) ? '<span class="sr-only"> 일정 있음</span>' : ''}</button>`;
+      const classes = [eventDates.has(key) && 'has-event', personalDates.has(key) && 'has-personal-event', schoolDates.has(key) && 'has-school-event'].filter(Boolean).join(' ');
+      return `<button type="button" data-date="${key}" aria-pressed="${key === selected}"${classes ? ` class="${classes}"` : ''}><span>${day}</span>${eventDates.has(key) ? `<span class="sr-only">${personalDates.has(key) ? ' 개인 일정 있음' : ''}${schoolDates.has(key) ? ' 학교 일정 있음' : ''}</span>` : ''}</button>`;
     }).join('')}</div>
   </div>`;
 }
