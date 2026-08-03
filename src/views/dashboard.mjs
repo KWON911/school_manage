@@ -76,7 +76,7 @@ function dashboardDateControls(kind, date, now) {
   const isToday = selected.key === dateParts(now).key;
   return `<div class="dashboard-card__date-controls" aria-label="${label} 날짜 이동">
     <button type="button" data-dashboard-date="${kind}" data-direction="previous">이전 날짜</button>
-    <time datetime="${selected.key.slice(0, 4)}-${selected.key.slice(4, 6)}-${selected.key.slice(6)}">${isToday ? '오늘' : selected.label}</time>
+    <button class="dashboard-card__date-today" type="button" data-dashboard-date="${kind}" data-direction="today" aria-label="${label} 오늘로 돌아가기"><time datetime="${selected.key.slice(0, 4)}-${selected.key.slice(4, 6)}-${selected.key.slice(6)}">${isToday ? '오늘' : selected.label}</time></button>
     <button type="button" data-dashboard-date="${kind}" data-direction="next">다음 날짜</button>
   </div>`;
 }
@@ -335,10 +335,14 @@ export function renderDashboard(container, context = {}) {
     const dateButton = event.target.closest?.('[data-dashboard-date]');
     if (dateButton) {
       if (dateButton.dataset.dashboardDate === 'timetable') {
-        timetableDate = moveDate(timetableDate, dateButton.dataset.direction);
+        timetableDate = dateButton.dataset.direction === 'today'
+          ? new Date(getCurrentTime())
+          : moveDate(timetableDate, dateButton.dataset.direction);
       }
       if (dateButton.dataset.dashboardDate === 'meals') {
-        mealsDate = moveDate(mealsDate, dateButton.dataset.direction);
+        mealsDate = dateButton.dataset.direction === 'today'
+          ? new Date(getCurrentTime())
+          : moveDate(mealsDate, dateButton.dataset.direction);
       }
       renderLoading(container, profile, getCurrentTime());
       void load();

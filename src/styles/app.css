@@ -403,8 +403,12 @@
   background: var(--mint);
 }
 
-.dashboard-card__date-controls time {
+.dashboard-card__date-today {
   flex: 1;
+}
+
+.dashboard-card__date-today time {
+  display: block;
   color: var(--text-muted);
   font-size: 12px;
   font-weight: 700;

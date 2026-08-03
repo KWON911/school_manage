@@ -149,7 +149,8 @@ test('dashboard card date controls move timetable and meals independently', asyn
   const view = renderDashboard(container, {
     profile: profile('student'),
     services,
-    now: new Date('2026-08-03T09:00:00+09:00')
+    now: new Date('2026-08-03T09:00:00+09:00'),
+    getCurrentTime: () => new Date('2026-08-03T09:00:00+09:00')
   });
 
   await view.ready;
@@ -171,6 +172,21 @@ test('dashboard card date controls move timetable and meals independently', asyn
   assert.deepEqual(timetableRequests.map((range) => range.from), ['20260803', '20260802']);
   assert.match(sectionMarkup(container.innerHTML, 'timetable'), /datetime="2026-08-02"/);
   assert.match(sectionMarkup(container.innerHTML, 'meals'), /datetime="2026-08-03"/);
+
+  container.fire('click', {
+    target: {
+      closest(selector) {
+        return selector === '[data-dashboard-date]'
+          ? { dataset: { dashboardDate: 'timetable', direction: 'today' } }
+          : null;
+      }
+    }
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.deepEqual(timetableRequests.map((range) => range.from), ['20260803', '20260802', '20260803']);
+  assert.match(sectionMarkup(container.innerHTML, 'timetable'), /data-direction="today"/);
+  assert.match(sectionMarkup(container.innerHTML, 'timetable'), /datetime="2026-08-03"/);
 });
 
 test('dashboard never shows a different date meal when today has no meal service', async () => {
