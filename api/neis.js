@@ -2,8 +2,18 @@ const ALLOWED_ENDPOINTS = {
   schoolInfo: { allowed: ['SCHUL_NM', 'SCHUL_KND_SC_NM'], pageSize: 20 },
   SchoolSchedule: { allowed: ['ATPT_OFCDC_SC_CODE', 'SD_SCHUL_CODE', 'AA_FROM_YMD', 'AA_TO_YMD'], pageSize: 100 },
   elsTimetable: { allowed: ['ATPT_OFCDC_SC_CODE', 'SD_SCHUL_CODE', 'AY', 'SEM', 'GRADE', 'CLASS_NM', 'TI_FROM_YMD', 'TI_TO_YMD'], pageSize: 1000 },
+  misTimetable: { allowed: ['ATPT_OFCDC_SC_CODE', 'SD_SCHUL_CODE', 'AY', 'SEM', 'GRADE', 'CLASS_NM', 'TI_FROM_YMD', 'TI_TO_YMD'], pageSize: 1000 },
+  hisTimetable: { allowed: ['ATPT_OFCDC_SC_CODE', 'SD_SCHUL_CODE', 'AY', 'SEM', 'GRADE', 'CLASS_NM', 'TI_FROM_YMD', 'TI_TO_YMD'], pageSize: 1000 },
   mealServiceDietInfo: { allowed: ['ATPT_OFCDC_SC_CODE', 'SD_SCHUL_CODE', 'MLSV_FROM_YMD', 'MLSV_TO_YMD'], pageSize: 100 }
 };
+
+function isAllowedEndpoint(endpoint) {
+  return typeof endpoint === 'string' && Object.hasOwn(ALLOWED_ENDPOINTS, endpoint);
+}
+
+function getAllowedParams(endpoint) {
+  return isAllowedEndpoint(endpoint) ? [...ALLOWED_ENDPOINTS[endpoint].allowed] : [];
+}
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -17,10 +27,10 @@ module.exports = async function handler(req, res) {
   }
 
   const endpoint = req.query.endpoint;
-  const config = ALLOWED_ENDPOINTS[endpoint];
-  if (!config) {
+  if (!isAllowedEndpoint(endpoint)) {
     return res.status(400).json({ error: 'Unsupported NEIS endpoint.' });
   }
+  const config = ALLOWED_ENDPOINTS[endpoint];
 
   const params = new URLSearchParams({
     KEY: apiKey,
@@ -29,7 +39,7 @@ module.exports = async function handler(req, res) {
     pSize: String(config.pageSize)
   });
 
-  for (const name of config.allowed) {
+  for (const name of getAllowedParams(endpoint)) {
     const value = req.query[name];
     if (typeof value === 'string' && value.length > 0) params.set(name, value);
   }
@@ -45,3 +55,6 @@ module.exports = async function handler(req, res) {
     return res.status(502).json({ error: 'NEIS service could not be reached.' });
   }
 };
+
+module.exports.isAllowedEndpoint = isAllowedEndpoint;
+module.exports.getAllowedParams = getAllowedParams;
