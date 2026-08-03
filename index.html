@@ -1057,7 +1057,26 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const NEIS_KEY = '3d265e8fadf142cb9b0dcdd10ff049df';
+// The real key is kept only on the deployed server in NEIS_API_KEY.
+const NEIS_KEY = '';
+const NEIS_PROXY_URL = '/api/neis';
+
+// Convert the existing NEIS requests into same-origin proxy requests. This
+// removes the key from every browser request as well as from the source code.
+const browserFetch = window.fetch.bind(window);
+window.fetch = (input, init) => {
+  const requestUrl = typeof input === 'string' ? input : input.url;
+  const url = new URL(requestUrl, window.location.origin);
+
+  if (url.origin === 'https://open.neis.go.kr' && url.pathname.startsWith('/hub/')) {
+    const query = new URLSearchParams(url.search);
+    query.delete('KEY');
+    query.set('endpoint', url.pathname.split('/').pop());
+    return browserFetch(`${NEIS_PROXY_URL}?${query.toString()}`, init);
+  }
+
+  return browserFetch(input, init);
+};
 
 const DEFAULT_SCHOOL = {
   ATPT_OFCDC_SC_CODE: 'E10',
