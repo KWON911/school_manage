@@ -333,6 +333,9 @@ export function renderSetup(container, context = {}) {
     } else if (result.status === 'no-data') {
       state.searchStatus = 'idle';
       state.searchMessage = '검색 결과가 없어요. 학교명을 다시 확인해 주세요.';
+    } else if (result.status === 'local-preview') {
+      state.searchStatus = 'error';
+      state.searchMessage = '파일로 바로 연 화면에서는 학교 검색을 사용할 수 없어요. Vercel 배포 주소에서 다시 열어 주세요.';
     } else {
       state.searchStatus = 'error';
       state.searchMessage = '학교를 찾지 못했어요. 잠시 후 다시 시도해 주세요.';

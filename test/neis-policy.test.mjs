@@ -56,6 +56,28 @@ test('normalizes school search rows into the profile school shape', async () => 
   }
 });
 
+test('does not attempt school search when the app is opened as a local file', async () => {
+  const { searchSchools } = await import('../src/services/neis.mjs');
+  const originalFetch = globalThis.fetch;
+  const originalLocation = globalThis.location;
+  let calls = 0;
+  globalThis.location = { protocol: 'file:' };
+  globalThis.fetch = async () => {
+    calls += 1;
+    throw new Error('a local file cannot reach the server proxy');
+  };
+
+  try {
+    assert.deepEqual(await searchSchools('\uAC00\uB78C'), {
+      status: 'local-preview', rows: []
+    });
+    assert.equal(calls, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+    globalThis.location = originalLocation;
+  }
+});
+
 test('does not make a request for an unsupported school kind', async () => {
   const { fetchTimetable } = await import('../src/services/neis.mjs');
   const originalFetch = globalThis.fetch;

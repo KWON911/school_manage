@@ -19,6 +19,10 @@ function rowsFrom(body, endpoint) {
 }
 
 async function requestRows(endpoint, params) {
+  if (globalThis.location?.protocol === 'file:') {
+    return { status: 'local-preview', rows: [] };
+  }
+
   let response;
   try {
     response = await fetch(createUrl(endpoint, params));
