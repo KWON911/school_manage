@@ -1126,6 +1126,20 @@
   font-size: 13px;
 }
 
+.schedule-item .schedule-item__source {
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: var(--green);
+  background: rgba(212, 233, 226, 0.55);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.schedule-item .schedule-item__source[data-source="personal"] {
+  background: rgba(203, 162, 88, 0.18);
+}
+
 .schedule-item strong {
   min-width: 0;
   color: var(--deep);

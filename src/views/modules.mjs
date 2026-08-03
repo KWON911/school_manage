@@ -4,6 +4,7 @@ import {
   fetchTimetable as requestTimetable,
   mealMatchesAllergies
 } from '../services/neis.mjs';
+import { fetchCalendarEvents as requestCalendarEvents } from '../services/google-calendar.mjs';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -75,13 +76,35 @@ function isImportantSchedule(row) {
   return /(시험|입학|졸업|개학|방학)/.test(String(row?.EVENT_NM ?? ''));
 }
 
+function calendarDateKey(value) {
+  return /^\d{8}$/.test(String(value ?? '')) ? String(value) : String(value ?? '').replaceAll('-', '').slice(0, 8);
+}
+
+function combinedScheduleResult(schedule, calendar) {
+  const schoolRows = schedule.status === 'ok' ? (schedule.rows ?? []).map((row) => ({ ...row, source: '학교 일정' })) : [];
+  const personalRows = calendar.status === 'ok' ? (calendar.rows ?? []).map((row) => ({
+    AA_YMD: calendarDateKey(row.start),
+    EVENT_NM: row.title,
+    TIME_LABEL: row.timeLabel,
+    source: '개인 일정',
+    isPersonal: true
+  })) : [];
+  const rows = [...schoolRows, ...personalRows].filter((row) => dateFromKey(row.AA_YMD));
+  if (rows.length > 0) return { status: 'ok', rows };
+  return schedule;
+}
+
 function scheduleItems(rows) {
   if (rows.length === 0) return '<p class="module-empty" role="status">일정이 등록되지 않았어요.</p>';
   return `<ol class="schedule-list">${rows.map((row) => `<li class="schedule-item${isImportantSchedule(row) ? ' is-important' : ''}">
     <time datetime="${String(row.AA_YMD).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')}">${escapeHtml(fullDateLabel(row.AA_YMD))}</time>
     <strong>${escapeHtml(row.EVENT_NM || '학교 일정')}</strong>
-    <span>대상 ${escapeHtml(scheduleGradeLabel(row))}</span>
+    <span class="schedule-item__source" data-source="${row.isPersonal ? 'personal' : 'school'}">${escapeHtml(row.source ?? '학교 일정')}${row.TIME_LABEL ? ` · ${escapeHtml(row.TIME_LABEL)}` : row.isPersonal ? '' : ` · 대상 ${escapeHtml(scheduleGradeLabel(row))}`}</span>
   </li>`).join('')}</ol>`;
+}
+
+function lastDateKey(date) {
+  return dateKey(new Date(date.getFullYear(), date.getMonth() + 1, 0));
 }
 
 function calendarDays(date, rows, dateField = 'AA_YMD') {
@@ -262,10 +285,12 @@ function renderMeals(date, mode, result, allergies) {
 }
 
 function createModule(container, context, kind) {
-  const services = context.services ?? {
+  const services = {
     fetchSchedule: requestSchedule,
     fetchTimetable: requestTimetable,
-    fetchMeals: requestMeals
+    fetchMeals: requestMeals,
+    fetchCalendarEvents: requestCalendarEvents,
+    ...(context.services ?? {})
   };
   const readNow = () => {
     const value = typeof context.now === 'function' ? context.now() : context.now;
@@ -309,7 +334,10 @@ function createModule(container, context, kind) {
     let request;
     if (kind === 'schedule') {
       request = context.profile?.school?.kind
-        ? services.fetchSchedule(context.profile.school, monthKey(selectedDate))
+        ? Promise.all([
+          services.fetchSchedule(context.profile.school, monthKey(selectedDate)),
+          services.fetchCalendarEvents(dateKey(selectedDate), lastDateKey(selectedDate))
+        ]).then(([schedule, calendar]) => combinedScheduleResult(schedule, calendar))
         : Promise.resolve({ status: 'missing-school', rows: [] });
     } else if (kind === 'meals') {
       request = context.profile?.school?.kind

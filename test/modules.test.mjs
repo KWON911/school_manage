@@ -164,6 +164,36 @@ test('schedule switches semantic list and calendar tabs and shows selected-day d
   assert.match(container.innerHTML, /선택한 날의 일정[\s\S]*진로 체험/);
 });
 
+test('full schedule combines personal calendar events with school events in list and calendar views', async () => {
+  const container = createContainer();
+  const view = renderScheduleModule(container, {
+    profile: PROFILE,
+    now: new Date(2026, 7, 3),
+    services: {
+      ...emptyServices,
+      fetchSchedule: async () => ({
+        status: 'ok',
+        rows: [{ AA_YMD: '20260803', EVENT_NM: '개학', ONE_GRADE_EVENT_YN: 'Y' }]
+      }),
+      fetchCalendarEvents: async () => ({
+        status: 'ok',
+        rows: [{ start: '2026-08-04T16:00:00+09:00', title: '치과 검진', timeLabel: '16:00' }]
+      })
+    }
+  });
+  await view.ready;
+
+  assert.match(container.innerHTML, /개학/);
+  assert.match(container.innerHTML, /치과 검진/);
+  assert.match(container.innerHTML, /학교 일정/);
+  assert.match(container.innerHTML, /개인 일정/);
+
+  container.fire('click', target({ mode: 'calendar' }));
+  container.fire('click', target({ date: '20260804' }));
+  assert.match(container.innerHTML, /data-date="20260804"[^>]*class="has-event"/);
+  assert.match(container.innerHTML, /선택한 날의 일정[\s\S]*치과 검진/);
+});
+
 test.skip('replaced by the always-weekly timetable', async () => {
   const container = createContainer();
   const ranges = [];
