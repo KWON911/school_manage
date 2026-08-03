@@ -29,6 +29,12 @@ function monthKey(date) {
   return dateKey(date).slice(0, 6);
 }
 
+function selectedCalendarIds(profile) {
+  return [...new Set((Array.isArray(profile?.calendarIds) ? profile.calendarIds : [])
+    .filter((id) => typeof id === 'string' && id.trim())
+    .map((id) => id.trim()))];
+}
+
 function dateLabel(date) {
   return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 (${WEEKDAYS[date.getDay()]})`;
 }
@@ -349,10 +355,13 @@ function createModule(container, context, kind) {
     const version = ++loadVersion;
     let request;
     if (kind === 'schedule') {
+      const calendarIds = selectedCalendarIds(context.profile);
       request = context.profile?.school?.kind
         ? Promise.all([
           services.fetchSchedule(context.profile.school, monthKey(selectedDate)),
-          services.fetchCalendarEvents(dateKey(selectedDate), lastDateKey(selectedDate), context.profile?.calendarIds)
+          calendarIds.length > 0
+            ? services.fetchCalendarEvents(dateKey(selectedDate), lastDateKey(selectedDate), calendarIds)
+            : Promise.resolve({ status: 'ok', rows: [] })
         ]).then(([schedule, calendar]) => combinedScheduleResult(schedule, calendar))
         : Promise.resolve({ status: 'missing-school', rows: [] });
     } else if (kind === 'meals') {

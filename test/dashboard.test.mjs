@@ -281,7 +281,7 @@ test('dashboard combines personal calendar items with school events under a neut
   });
 
   const view = renderDashboard(container, {
-    profile: profile('parent'),
+    profile: profile('parent', { calendarIds: ['primary'] }),
     services,
     now: new Date('2026-08-03T09:00:00+09:00')
   });
@@ -293,6 +293,26 @@ test('dashboard combines personal calendar items with school events under a neut
   assert.match(upcoming, /치과 검진/);
   assert.match(upcoming, /개인 일정/);
   assert.match(upcoming, /학교 일정/);
+});
+
+test('dashboard clears personal events without a selected calendar', async () => {
+  const container = createContainer();
+  const services = successfulServices();
+  let calendarRequests = 0;
+  services.fetchCalendarEvents = async () => {
+    calendarRequests += 1;
+    return { status: 'ok', rows: [{ start: '20260804', title: '남아 있으면 안 되는 개인 일정' }] };
+  };
+
+  const view = renderDashboard(container, {
+    profile: profile('student', { calendarIds: [] }),
+    services,
+    now: new Date('2026-08-03T09:00:00+09:00')
+  });
+  await view.ready;
+
+  assert.equal(calendarRequests, 0);
+  assert.doesNotMatch(container.innerHTML, /남아 있으면 안 되는 개인 일정/);
 });
 
 test('timetable states give a cause-specific explanation and next action', async () => {

@@ -152,10 +152,10 @@ async function calendarEventsList(session, calendarId, range) {
 }
 
 async function eventsFor(session, req) {
-  const range = requestedRange(req);
   const calendarIds = selectedCalendarIds(req);
-  const targets = calendarIds.length > 0 ? calendarIds : ['primary'];
-  const results = await Promise.all(targets.map((calendarId) => calendarEventsList(session, calendarId, range)));
+  if (calendarIds.length === 0) return { events: [] };
+  const range = requestedRange(req);
+  const results = await Promise.all(calendarIds.map((calendarId) => calendarEventsList(session, calendarId, range)));
   if (results.some((result) => result.unauthorized)) return { unauthorized: true, events: [] };
   return { events: results.flatMap((result) => result.events) };
 }
@@ -223,6 +223,7 @@ module.exports = async function handler(req, res) {
   }
 
   if (action === 'events' && req.method === 'GET') {
+    if (selectedCalendarIds(req).length === 0) return respondJson(res, 200, { events: [] });
     const session = await usableToken(decrypt(readCookies(req)[COOKIE_NAME]));
     if (!session) return respondJson(res, 401, { error: 'Google Calendar is not connected.' });
     try {

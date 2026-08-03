@@ -167,7 +167,7 @@ test('schedule switches semantic list and calendar tabs and shows selected-day d
 test('full schedule combines personal calendar events with school events in list and calendar views', async () => {
   const container = createContainer();
   const view = renderScheduleModule(container, {
-    profile: PROFILE,
+    profile: { ...PROFILE, calendarIds: ['primary'] },
     now: new Date(2026, 7, 3),
     services: {
       ...emptyServices,
@@ -192,6 +192,27 @@ test('full schedule combines personal calendar events with school events in list
   container.fire('click', target({ date: '20260804' }));
   assert.match(container.innerHTML, /data-date="20260804"[^>]*class="has-event has-personal-event"/);
   assert.match(container.innerHTML, /선택한 날의 일정[\s\S]*치과 검진/);
+});
+
+test('full schedule does not request or show personal events with no calendar selected', async () => {
+  const container = createContainer();
+  let calendarRequests = 0;
+  const view = renderScheduleModule(container, {
+    profile: { ...PROFILE, calendarIds: [] },
+    now: new Date(2026, 7, 3),
+    services: {
+      ...emptyServices,
+      fetchSchedule: async () => ({ status: 'ok', rows: [] }),
+      fetchCalendarEvents: async () => {
+        calendarRequests += 1;
+        return { status: 'ok', rows: [{ start: '2026-08-04T16:00:00+09:00', title: '남아 있으면 안 되는 개인 일정' }] };
+      }
+    }
+  });
+  await view.ready;
+
+  assert.equal(calendarRequests, 0);
+  assert.doesNotMatch(container.innerHTML, /남아 있으면 안 되는 개인 일정/);
 });
 
 test('schedule navigates by month and highlights only today in the list without changing text color', async () => {

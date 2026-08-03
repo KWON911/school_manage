@@ -24,9 +24,13 @@ export async function fetchCalendarList() {
 }
 
 export async function fetchCalendarEvents(from, to, calendarIds = []) {
+  const selectedIds = [...new Set((Array.isArray(calendarIds) ? calendarIds : [])
+    .filter((id) => typeof id === 'string' && id.trim())
+    .map((id) => id.trim()))];
+  if (selectedIds.length === 0) return { status: 'ok', rows: [] };
   try {
     const query = new URLSearchParams({ action: 'events', from, to });
-    if (Array.isArray(calendarIds) && calendarIds.length > 0) query.set('calendarIds', calendarIds.join(','));
+    query.set('calendarIds', selectedIds.join(','));
     const response = await fetch(`${CALENDAR_PATH}?${query}`, { credentials: 'same-origin' });
     if (response.status === 401) return { status: 'not-connected', rows: [] };
     if (!response.ok) return { status: 'server-error', rows: [] };

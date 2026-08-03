@@ -16,6 +16,7 @@ test('Google Calendar server exposes calendar-list and selected calendar event r
   assert.match(source, /action === 'calendar-list'/);
   assert.match(source, /calendarList/);
   assert.match(source, /calendarIds/);
+  assert.doesNotMatch(source, /calendarIds\.length > 0 \? calendarIds : \['primary'\]/);
 });
 
 test('allows middle and high school timetable endpoints with the elementary timetable parameters', () => {

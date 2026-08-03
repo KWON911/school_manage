@@ -50,6 +50,7 @@ function renderCalendarConnection(status, calendars = [], selectedIds = []) {
     ? `<details class="calendar-picker">
         <summary>표시할 캘린더 <span>${selected.size || 0}개 선택</span></summary>
         <div class="calendar-picker__options" id="settings-calendar-hint">
+          <label><input type="checkbox" name="settingsCalendarNone" value=""${selected.size === 0 ? ' checked' : ''}><span>선택 안 함</span></label>
           ${calendars.map((calendar) => `<label><input type="checkbox" name="settingsCalendarIds" value="${escapeHtml(calendar.id)}"${selected.has(calendar.id) ? ' checked' : ''}><span>${escapeHtml(calendar.summary)}${calendar.primary ? ' (기본)' : ''}</span></label>`).join('')}
         </div>
       </details><p class="calendar-picker__hint">필요한 캘린더를 체크한 뒤 설정 저장을 눌러 주세요.</p>`
@@ -240,6 +241,13 @@ export function renderSettings(container, context = {}) {
       const selected = new Set(state.draft.calendarIds ?? []);
       event.target.checked ? selected.add(event.target.value) : selected.delete(event.target.value);
       state.draft.calendarIds = [...selected];
+      const none = event.target.closest?.('.calendar-picker__options')?.querySelector?.('[name="settingsCalendarNone"]');
+      if (none) none.checked = state.draft.calendarIds.length === 0;
+    }
+    if (event.target.name === 'settingsCalendarNone' && event.target.checked) {
+      state.draft.calendarIds = [];
+      const options = event.target.closest?.('.calendar-picker__options');
+      options?.querySelectorAll?.('[name="settingsCalendarIds"]')?.forEach((input) => { input.checked = false; });
     }
   }
 

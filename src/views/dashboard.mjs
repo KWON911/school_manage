@@ -93,6 +93,12 @@ function cacheKey(profile, suffix) {
   ].join(':');
 }
 
+function selectedCalendarIds(profile) {
+  return [...new Set((Array.isArray(profile?.calendarIds) ? profile.calendarIds : [])
+    .filter((id) => typeof id === 'string' && id.trim())
+    .map((id) => id.trim()))];
+}
+
 async function cachedRequest(cache, key, request) {
   if (!cache?.has(key)) {
     const pending = Promise.resolve().then(request);
@@ -304,6 +310,7 @@ export function renderDashboard(container, context = {}) {
     const version = ++loadVersion;
     const timetableDay = dateParts(timetableDate);
     const mealsDay = dateParts(mealsDate);
+    const calendarIds = selectedCalendarIds(profile);
     const timetableKey = cacheKey(profile, timetableDay.key);
     const mealKey = cacheKey(profile, mealsDay.month);
     const needsMeals = getDashboardSections(profile.role).includes('meals');
@@ -317,7 +324,9 @@ export function renderDashboard(container, context = {}) {
         ? cachedRequest(caches.meals, mealKey, () => services.fetchMeals(profile.school, mealsDay.month))
         : Promise.resolve({ status: 'no-data', rows: [] }),
       cachedRequest(caches.schedule, cacheKey(profile, date.month), () => services.fetchSchedule(profile.school, date.month)),
-      services.fetchCalendarEvents(date.key, monthEndKey(now), profile.calendarIds)
+      calendarIds.length > 0
+        ? services.fetchCalendarEvents(date.key, monthEndKey(now), calendarIds)
+        : Promise.resolve({ status: 'ok', rows: [] })
     ]);
     if (destroyed || version !== loadVersion) return;
 

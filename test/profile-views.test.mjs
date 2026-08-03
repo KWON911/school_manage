@@ -207,6 +207,7 @@ test('settings presents a mobile-friendly checkbox calendar dropdown and preserv
   });
 
   assert.match(markup, /<details class="calendar-picker"/);
+  assert.match(markup, /type="checkbox" name="settingsCalendarNone" value=""/);
   assert.match(markup, /type="checkbox" name="settingsCalendarIds" value="family-calendar" checked/);
   assert.match(markup, /가족 일정/);
   assert.deepEqual(createProfileCandidate(draft), draft);
