@@ -62,9 +62,36 @@ function action(view, label) {
   return `<button class="dashboard-card__action" type="button" data-view="${view}">${label}</button>`;
 }
 
+function retryAction(resource) {
+  return `<button class="dashboard-card__action" type="button" data-action="retry-dashboard" data-resource="${resource}">다시 시도</button>`;
+}
+
+function failureMessage(status, resource) {
+  const messages = {
+    meals: {
+      'network-error': '네트워크 연결로 급식 정보를 불러오지 못했어요.',
+      'server-error': '학교 정보 시스템 응답 문제로 급식 정보를 불러오지 못했어요.'
+    },
+    schedule: {
+      'network-error': '네트워크 연결로 오늘 일정을 불러오지 못했어요.',
+      'server-error': '학교 정보 시스템 응답 문제로 오늘 일정을 불러오지 못했어요.'
+    },
+    upcoming: {
+      'network-error': '네트워크 연결로 다가오는 일정을 불러오지 못했어요.',
+      'server-error': '학교 정보 시스템 응답 문제로 다가오는 일정을 불러오지 못했어요.'
+    }
+  };
+  return messages[resource]?.[status] ?? null;
+}
+
+function failureState(status, resource) {
+  const message = failureMessage(status, resource);
+  return message ? `<div class="dashboard-state" role="alert"><p>${message}</p></div>` : null;
+}
+
 function stateAction(status) {
   if (status === 'network-error' || status === 'server-error') {
-    return '<button class="dashboard-card__action" type="button" data-action="retry-dashboard">다시 시도</button>';
+    return retryAction('timetable');
   }
   if (status === 'no-data') return action('settings', '반 바꾸기');
   return action('settings', '학교 확인하기');
@@ -137,17 +164,18 @@ function renderMealsCard(profile, result, date) {
   const row = (result.rows ?? []).find((item) => item.MLSV_YMD === date.key) ?? result.rows?.[0];
   const items = result.status === 'ok' ? mealItems(row) : [];
   const matched = matchingAllergies(row, profile.allergies ?? []);
+  const failure = failureState(result.status, 'meals');
   return `<article class="dashboard-card dashboard-card--meals" data-dashboard-section="meals">
     <div class="dashboard-card__heading">
       <p class="dashboard-card__eyebrow">오늘의 급식</p>
       <h2>${escapeHtml(row?.MMEAL_SC_NM ?? '점심 식단')}</h2>
     </div>
-    ${items.length > 0
+    ${failure ?? (items.length > 0
       ? `<ul class="meal-preview">${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`
-      : '<div class="dashboard-state" role="status"><p>오늘 등록된 급식 정보가 없어요.</p></div>'}
+      : '<div class="dashboard-state" role="status"><p>오늘 등록된 급식 정보가 없어요.</p></div>')}
     ${matched.length > 0 ? `<p class="allergy-match">설정한 알레르기 번호 ${matched.map(escapeHtml).join(', ')}가 표기된 메뉴가 있어요.</p>` : ''}
     <p class="allergy-note">알레르기 안내는 NEIS 급식 알레르기 표기를 기준으로 하며, 실제 제공 식단은 학교에 다시 확인해 주세요.</p>
-    ${action('meals', '급식 자세히 보기')}
+    ${failure ? retryAction('meals') : action('meals', '급식 자세히 보기')}
   </article>`;
 }
 
@@ -157,19 +185,21 @@ function todayScheduleRows(result, dateKey) {
 
 function renderScheduleCard(result, date) {
   const rows = result.status === 'ok' ? todayScheduleRows(result, date.key) : [];
+  const failure = failureState(result.status, 'schedule');
   return `<article class="dashboard-card dashboard-card--schedule" data-dashboard-section="schedule">
     <div class="dashboard-card__heading">
       <p class="dashboard-card__eyebrow">교사의 오늘</p>
       <h2>오늘 일정</h2>
     </div>
-    ${rows.length > 0
+    ${failure ?? (rows.length > 0
       ? `<ul class="schedule-preview">${rows.map((row) => `<li>${escapeHtml(row.EVENT_NM || '학교 일정')}</li>`).join('')}</ul>`
-      : '<div class="dashboard-state" role="status"><p>오늘 등록된 학교 일정이 없어요.</p></div>'}
-    ${action('schedule', '일정 전체 보기')}
+      : '<div class="dashboard-state" role="status"><p>오늘 등록된 학교 일정이 없어요.</p></div>')}
+    ${failure ? retryAction('schedule') : action('schedule', '일정 전체 보기')}
   </article>`;
 }
 
 function renderUpcoming(result, date) {
+  const failure = failureState(result.status, 'upcoming');
   const rows = result.status === 'ok'
     ? (result.rows ?? [])
       .filter((row) => /^\d{8}$/.test(row.AA_YMD) && row.AA_YMD >= date.key)
@@ -181,10 +211,10 @@ function renderUpcoming(result, date) {
     <h2 id="support-title">다가오는 학교생활</h2>
   </div>
   <section class="upcoming-events" data-dashboard-section="upcoming" aria-labelledby="support-title">
-    ${rows.length > 0
+    ${failure ?? (rows.length > 0
       ? `<ol>${rows.map((row) => `<li><time>${escapeHtml(row.AA_YMD === date.key ? '오늘' : `${Number(String(row.AA_YMD).slice(4, 6))}월 ${Number(String(row.AA_YMD).slice(6, 8))}일`)}</time><strong>${escapeHtml(row.EVENT_NM || '학교 일정')}</strong></li>`).join('')}</ol>`
-      : '<p class="dashboard-state">다가오는 일정이 아직 없어요.</p>'}
-    ${action('schedule', '일정 전체 보기')}
+      : '<p class="dashboard-state">다가오는 일정이 아직 없어요.</p>')}
+    ${failure ? retryAction('schedule') : action('schedule', '일정 전체 보기')}
   </section>`;
 }
 
@@ -255,12 +285,14 @@ export function renderDashboard(container, context = {}) {
   }
 
   container.addEventListener?.('click', onClick);
+  if (supportContainer !== container) supportContainer?.addEventListener?.('click', onClick);
   const ready = load();
   return {
     ready,
     destroy() {
       destroyed = true;
       container.removeEventListener?.('click', onClick);
+      if (supportContainer !== container) supportContainer?.removeEventListener?.('click', onClick);
     }
   };
 }

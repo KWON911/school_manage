@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { getDashboardSections, renderDashboard } from '../src/views/dashboard.mjs';
 
 const SCHOOL = {
@@ -59,6 +60,11 @@ function createContainer() {
     },
     fire(type, event) { listeners.get(type)?.(event); }
   };
+}
+
+function sectionMarkup(html, section) {
+  const pattern = new RegExp(`<(?:article|section)[^>]*data-dashboard-section="${section}"[\\s\\S]*?<\\/(?:article|section)>`);
+  return html.match(pattern)?.[0] ?? '';
 }
 
 test('dashboard sections follow the daily priorities for each role', () => {
@@ -206,4 +212,148 @@ test('network retry requests dashboard data again and replaces the error state',
   assert.equal(timetableRequests, 2);
   assert.match(container.innerHTML, /국어/);
   assert.doesNotMatch(container.innerHTML, /네트워크 연결/);
+});
+
+test('meal, teacher schedule, and upcoming failures keep their cause and one retry action', async () => {
+  const cases = [
+    {
+      name: 'meal',
+      role: 'student',
+      section: 'meals',
+      resultTarget: 'main',
+      service: 'fetchMeals',
+      emptyMessage: /오늘 등록된 급식 정보가 없어요/,
+      resourceMessage: /급식 정보/
+    },
+    {
+      name: 'teacher schedule',
+      role: 'teacher',
+      section: 'schedule',
+      resultTarget: 'main',
+      service: 'fetchSchedule',
+      emptyMessage: /오늘 등록된 학교 일정이 없어요/,
+      resourceMessage: /오늘 일정/
+    },
+    {
+      name: 'upcoming events',
+      role: 'student',
+      section: 'upcoming',
+      resultTarget: 'support',
+      service: 'fetchSchedule',
+      emptyMessage: /다가오는 일정이 아직 없어요/,
+      resourceMessage: /다가오는 일정/
+    }
+  ];
+
+  for (const scenario of cases) {
+    for (const status of ['network-error', 'server-error']) {
+      const container = createContainer();
+      const supportContainer = createContainer();
+      const services = successfulServices();
+      services[scenario.service] = async () => ({ status, rows: [] });
+      const view = renderDashboard(container, {
+        profile: profile(scenario.role),
+        services,
+        supportContainer,
+        now: new Date('2026-08-03T09:00:00+09:00')
+      });
+
+      await view.ready;
+      const html = scenario.resultTarget === 'main' ? container.innerHTML : supportContainer.innerHTML;
+      const card = sectionMarkup(html, scenario.section);
+      assert.match(card, scenario.resourceMessage, `${scenario.name} should identify the failed resource`);
+      assert.match(card, status === 'network-error' ? /네트워크 연결/ : /학교 정보 시스템/);
+      assert.doesNotMatch(card, scenario.emptyMessage);
+      assert.equal((card.match(/dashboard-card__action/g) ?? []).length, 1);
+      assert.match(card, /data-action="retry-dashboard"[^>]*>다시 시도/);
+    }
+  }
+});
+
+test('meal retry refetches meal data and restores the normal meal action', async () => {
+  const container = createContainer();
+  const supportContainer = createContainer();
+  const services = successfulServices();
+  const viewData = { timetable: new Map(), meals: new Map(), schedule: new Map() };
+  let mealRequests = 0;
+  services.fetchMeals = async () => {
+    mealRequests += 1;
+    if (mealRequests === 1) return { status: 'network-error', rows: [] };
+    return {
+      status: 'ok',
+      rows: [{ MLSV_YMD: '20260803', MMEAL_SC_NM: '중식', DDISH_NM: '비빔밥(5.6)' }]
+    };
+  };
+  const view = renderDashboard(container, {
+    profile: profile('student'),
+    services,
+    supportContainer,
+    viewData,
+    now: new Date('2026-08-03T09:00:00+09:00')
+  });
+
+  await view.ready;
+  container.fire('click', {
+    target: {
+      closest(selector) {
+        return selector === '[data-action="retry-dashboard"]'
+          ? { dataset: { resource: 'meals' } }
+          : null;
+      }
+    }
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const card = sectionMarkup(container.innerHTML, 'meals');
+  assert.equal(mealRequests, 2);
+  assert.match(card, /비빔밥/);
+  assert.match(card, /data-view="meals"[^>]*>급식 자세히 보기/);
+  assert.doesNotMatch(card, /data-action="retry-dashboard"/);
+});
+
+test('upcoming retry from the support rail refetches schedule data', async () => {
+  const container = createContainer();
+  const supportContainer = createContainer();
+  const services = successfulServices();
+  const viewData = { timetable: new Map(), meals: new Map(), schedule: new Map() };
+  let scheduleRequests = 0;
+  services.fetchSchedule = async () => {
+    scheduleRequests += 1;
+    if (scheduleRequests === 1) return { status: 'server-error', rows: [] };
+    return {
+      status: 'ok',
+      rows: [{ AA_YMD: '20260805', EVENT_NM: '진로 체험' }]
+    };
+  };
+  const view = renderDashboard(container, {
+    profile: profile('student'),
+    services,
+    supportContainer,
+    viewData,
+    now: new Date('2026-08-03T09:00:00+09:00')
+  });
+
+  await view.ready;
+  supportContainer.fire('click', {
+    target: {
+      closest(selector) {
+        return selector === '[data-action="retry-dashboard"]'
+          ? { dataset: { resource: 'schedule' } }
+          : null;
+      }
+    }
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(scheduleRequests, 2);
+  assert.match(supportContainer.innerHTML, /진로 체험/);
+  assert.doesNotMatch(supportContainer.innerHTML, /학교 정보 시스템/);
+});
+
+test('dashboard actions retain a 44px minimum touch target', async () => {
+  const css = await readFile(new URL('../src/styles/app.css', import.meta.url), 'utf8');
+  const rule = css.match(/\.dashboard-card__action\s*\{([^}]*)\}/)?.[1] ?? '';
+  const minHeight = Number(rule.match(/min-height:\s*([\d.]+)px/)?.[1]);
+
+  assert.ok(minHeight >= 44, `expected at least 44px, received ${minHeight || 'no value'}`);
 });
