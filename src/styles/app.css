@@ -65,6 +65,17 @@
   gap: 12px;
 }
 
+.brand-school-icon {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+}
+
 .brand-mark {
   position: relative;
   display: grid;
@@ -93,9 +104,10 @@
 }
 
 .brand-lockup strong {
-  font-size: 19px;
+  font-size: 22px;
+  font-weight: 800;
   line-height: 1.25;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.03em;
 }
 
 .brand-lockup div > span {
@@ -104,10 +116,54 @@
   font-size: 12px;
 }
 
+.school-switcher {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 22px;
+  padding: 0 14px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 10px;
+  color: var(--surface);
+  background: rgba(255, 255, 255, 0.1);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.school-switcher:hover {
+  background: rgba(255, 255, 255, 0.17);
+}
+
+.school-switcher > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.school-switcher__icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.compact-school-switcher {
+  display: none;
+}
+
 .sidebar-navigation {
   display: grid;
   gap: 6px;
-  margin-top: 44px;
+  margin-top: 26px;
 }
 
 .nav-item {
@@ -1492,14 +1548,17 @@
     font-weight: 600;
   }
 
-  .compact-header__settings {
-    padding: 0 18px;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    color: var(--green);
-    background: var(--surface);
-    font-size: 14px;
-    font-weight: 600;
+  .compact-school-switcher {
+    display: block;
+    width: min(calc(100% - 48px), var(--content-max));
+    margin: 0 auto 16px;
+  }
+
+  .compact-school-switcher .school-switcher {
+    margin-top: 0;
+    border-color: var(--deep);
+    color: var(--surface);
+    background: var(--deep);
   }
 
   .app-shell {
@@ -1561,29 +1620,45 @@
     min-height: 64px;
     padding: 0 16px;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     border-bottom: 1px solid var(--line);
     color: var(--deep);
     background: rgba(244, 241, 234, 0.96);
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 20px;
+    font-weight: 800;
   }
 
-  .compact-header__settings {
-    padding: 0 12px;
-    border: 0;
-    border-radius: 999px;
-    color: var(--green);
-    background: var(--mint);
+  .compact-brand {
+    gap: 9px;
+    letter-spacing: -0.03em;
+  }
+
+  .compact-brand .brand-school-icon {
+    width: 25px;
+    height: 25px;
+  }
+
+  .compact-school-switcher {
+    display: block;
+    padding: 10px 16px 0;
+    background: rgba(244, 241, 234, 0.96);
+  }
+
+  .compact-school-switcher .school-switcher {
+    min-height: 42px;
+    margin-top: 0;
+    border-color: var(--deep);
+    border-radius: 9px;
+    color: var(--surface);
+    background: var(--deep);
     font-size: 13px;
-    font-weight: 600;
   }
 
   .app-shell {
     display: block;
     width: 100%;
     min-height: auto;
-    padding: 20px 16px 28px;
+    padding: 16px 16px 28px;
   }
 
   .sidebar,

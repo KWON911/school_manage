@@ -56,7 +56,7 @@ function dashboardClockLabel(date) {
 }
 
 function dashboardTopMarkup(profile, currentTime) {
-  return `<div class="content-heading"><time class="dashboard-clock" data-dashboard-clock datetime="${clockDateTimeValue(currentTime)}">${dashboardClockLabel(currentTime)}</time><span>${escapeHtml(profile.school?.name)}</span></div>
+  return `<div class="content-heading"><time class="dashboard-clock" data-dashboard-clock datetime="${clockDateTimeValue(currentTime)}">${dashboardClockLabel(currentTime)}</time></div>
     <header class="dashboard-header"><h1 id="view-title">${greeting(profile.role)}</h1></header>`;
 }
 

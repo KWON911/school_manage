@@ -36,6 +36,9 @@ const ICONS = {
   settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.14.36.36.7.64 1 .3.27.7.42 1.1.4H21v4h-.09A1.7 1.7 0 0 0 19.4 15z"/>'
 };
 
+const SCHOOL_ICON = `<svg class="brand-school-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-5h6v5M9 10h.01M15 10h.01"/></svg>`;
+const CHEVRON_ICON = '<svg class="school-switcher__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6"/></svg>';
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -52,6 +55,12 @@ export function renderNavigation(activeView) {
       <span>${item.label}</span>
     </button>
   `).join('');
+}
+
+function schoolSwitcher(className, schoolName) {
+  return `<button class="${className}" type="button" data-view="settings" data-settings-target="school" aria-label="${escapeHtml(schoolName)} 학교 변경">
+    <span>${escapeHtml(schoolName)}</span>${CHEVRON_ICON}
+  </button>`;
 }
 
 export function renderStatusMessage(state) {
@@ -87,21 +96,22 @@ export function renderAppShell(container, activeView = 'home', options = {}) {
 
       <header class="compact-header">
         <div class="compact-brand">
-          <span class="brand-mark" aria-hidden="true"><span></span><span></span></span>
+          ${SCHOOL_ICON}
           <span>학교생활</span>
         </div>
-        <button class="compact-header__settings" type="button" data-view="settings">내 설정</button>
       </header>
+      <div class="compact-school-switcher">${schoolSwitcher('school-switcher', schoolName)}</div>
 
       <div class="app-shell">
         <aside class="sidebar" aria-label="학교생활 탐색">
           <div class="brand-lockup">
-            <span class="brand-mark" aria-hidden="true"><span></span><span></span></span>
+            ${SCHOOL_ICON}
             <div>
               <strong>학교생활</strong>
               <span>오늘을 한눈에</span>
             </div>
           </div>
+          ${schoolSwitcher('school-switcher', schoolName)}
           <nav class="sidebar-navigation" aria-label="주요 메뉴">${navigation}</nav>
           <p class="sidebar-note">학교를 설정하면<br>오늘의 정보를 알려드려요.</p>
         </aside>

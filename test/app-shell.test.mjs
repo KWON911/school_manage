@@ -146,11 +146,16 @@ test('status messages escape content supplied by state', () => {
 test('app shell renders semantic content without the supporting sidebar', () => {
   const container = { innerHTML: '' };
 
-  renderAppShell(container, 'schedule');
+  renderAppShell(container, 'schedule', { schoolName: '가람중학교' });
 
   assert.match(container.innerHTML, /<main[^>]*id="main-content"/);
   assert.doesNotMatch(container.innerHTML, /<aside class="support-panel"/);
   assert.match(container.innerHTML, /data-view="schedule"[^>]*aria-current="page"/);
+  assert.match(container.innerHTML, /class="brand-school-icon"/);
+  assert.match(container.innerHTML, /class="school-switcher"[^>]*data-view="settings"[^>]*data-settings-target="school"/);
+  assert.match(container.innerHTML, /가람중학교/);
+  assert.match(container.innerHTML, /class="compact-school-switcher"/);
+  assert.doesNotMatch(container.innerHTML, /compact-header__settings/);
 });
 
 test('mounted shell changes view through delegated navigation clicks', () => {
