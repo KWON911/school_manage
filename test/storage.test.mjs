@@ -55,6 +55,7 @@ test('saves and reads the complete profile from eduHub_profile', () => {
 
 test('treats malformed saved profiles as empty and clears a school without kind', () => {
   const malformed = createStorage({ eduHub_profile: '{not json' });
+  const jsonNull = createStorage({ eduHub_profile: 'null' });
   const missingKind = createStorage({
     eduHub_profile: JSON.stringify({
       role: 'parent',
@@ -65,12 +66,38 @@ test('treats malformed saved profiles as empty and clears a school without kind'
   });
 
   assert.deepEqual(readProfile(malformed), createEmptyProfile());
+  assert.deepEqual(readProfile(jsonNull), createEmptyProfile());
   assert.deepEqual(readProfile(missingKind), {
     role: 'parent',
     school: null,
     classSetting: { grade: '1', classNm: '1' },
     allergies: []
   });
+});
+
+test('does not migrate legacy keys when a malformed consolidated profile exists', () => {
+  const storage = createStorage({
+    eduHub_profile: '{not json',
+    eduHub_school: JSON.stringify({ name: '가나다중학교', kind: '중학교' }),
+    eduHub_classSetting: JSON.stringify({ grade: '1', classNm: '2' }),
+    eduHub_myAllergies: JSON.stringify(['1'])
+  });
+
+  assert.deepEqual(readProfile(storage), createEmptyProfile());
+});
+
+test('requires positive integer grade and class values', () => {
+  const base = {
+    role: 'student',
+    school: { name: '가나다중학교', kind: '중학교' },
+    classSetting: { grade: '1', classNm: '1' },
+    allergies: []
+  };
+
+  assert.equal(isProfileComplete({ ...base, classSetting: { grade: '0', classNm: '1' } }), false);
+  assert.equal(isProfileComplete({ ...base, classSetting: { grade: '-1', classNm: '1' } }), false);
+  assert.equal(isProfileComplete({ ...base, classSetting: { grade: '1', classNm: '0' } }), false);
+  assert.equal(isProfileComplete({ ...base, classSetting: { grade: '1', classNm: '-1' } }), false);
 });
 
 test('migrates legacy profile keys once when the school includes its kind', () => {

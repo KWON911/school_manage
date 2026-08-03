@@ -24,6 +24,10 @@ function nonEmptyString(value) {
   return typeof value === 'string' && value.trim() ? value : null;
 }
 
+function isPositiveInteger(value) {
+  return typeof value === 'string' && /^[1-9]\d*$/.test(value);
+}
+
 function normalizeSchool(school) {
   if (!school || typeof school !== 'object' || !nonEmptyString(school.kind)) return null;
   return school;
@@ -31,7 +35,7 @@ function normalizeSchool(school) {
 
 function normalizeClassSetting(classSetting) {
   if (!classSetting || typeof classSetting !== 'object') return null;
-  if (!nonEmptyString(classSetting.grade) || !nonEmptyString(classSetting.classNm)) return null;
+  if (!isPositiveInteger(classSetting.grade) || !isPositiveInteger(classSetting.classNm)) return null;
   return classSetting;
 }
 
@@ -80,7 +84,8 @@ function migrateLegacyProfile(storage) {
 }
 
 export function readProfile(storage) {
-  const savedProfile = readJson(storage, PROFILE_KEY);
-  if (savedProfile !== null) return normalizeProfile(savedProfile) ?? createEmptyProfile();
+  if (storage?.getItem(PROFILE_KEY) !== null) {
+    return normalizeProfile(readJson(storage, PROFILE_KEY)) ?? createEmptyProfile();
+  }
   return migrateLegacyProfile(storage);
 }
