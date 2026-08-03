@@ -12,6 +12,30 @@ import {
 } from '../src/components.mjs';
 import { mountApp } from '../src/main.mjs';
 
+const COMPLETE_PROFILE = {
+  role: 'student',
+  school: {
+    name: '가람중학교',
+    kind: '중학교',
+    area: '서울특별시교육청',
+    address: '서울특별시 강남구 가람로 1',
+    ATPT_OFCDC_SC_CODE: 'B10',
+    SD_SCHUL_CODE: '7010001'
+  },
+  classSetting: { grade: '2', classNm: '3' },
+  allergies: []
+};
+
+function createProfileStorage(profile = COMPLETE_PROFILE) {
+  const entries = new Map();
+  if (profile) entries.set('eduHub_profile', JSON.stringify(profile));
+  return {
+    getItem(key) { return entries.has(key) ? entries.get(key) : null; },
+    setItem(key, value) { entries.set(key, String(value)); },
+    removeItem(key) { entries.delete(key); }
+  };
+}
+
 function createFocusTrackingDom() {
   const listeners = new Map();
   const ownerDocument = { activeElement: null };
@@ -137,7 +161,7 @@ test('mounted shell changes view through delegated navigation clicks', () => {
       listeners.set(type, listener);
     }
   };
-  const appState = mountApp(container);
+  const appState = mountApp(container, { storage: createProfileStorage() });
 
   listeners.get('click')({
     target: {
@@ -154,8 +178,34 @@ test('mounted shell changes view through delegated navigation clicks', () => {
 test('navigation restores focus to main content after replacing the active button', () => {
   const dom = createFocusTrackingDom();
 
-  mountApp(dom.container);
+  mountApp(dom.container, { storage: createProfileStorage() });
   dom.click('timetable');
 
   assert.equal(dom.ownerDocument.activeElement, dom.container.querySelector('#main-content'));
+});
+
+test('first visit renders guided setup before the dashboard shell', () => {
+  const container = {
+    innerHTML: '',
+    addEventListener() {}
+  };
+
+  mountApp(container, { storage: createProfileStorage(null) });
+
+  assert.match(container.innerHTML, /data-setup-form/);
+  assert.match(container.innerHTML, /내 학교생활을 연결해 볼까요\?/);
+  assert.doesNotMatch(container.innerHTML, /class="app-shell"/);
+});
+
+test('a complete saved profile opens the dashboard shell', () => {
+  const container = {
+    innerHTML: '',
+    addEventListener() {},
+    querySelector() { return null; }
+  };
+
+  mountApp(container, { storage: createProfileStorage() });
+
+  assert.match(container.innerHTML, /class="app-shell"/);
+  assert.doesNotMatch(container.innerHTML, /data-setup-form/);
 });

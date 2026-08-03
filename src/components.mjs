@@ -68,10 +68,18 @@ export function renderStatusMessage(state) {
   `;
 }
 
-export function renderAppShell(container, activeView = 'home') {
+export function renderAppShell(container, activeView = 'home', options = {}) {
   const view = resolveView(activeView);
   const content = VIEW_CONTENT[view];
   const navigation = renderNavigation(view);
+  const schoolName = options.schoolName ?? '학교 미설정';
+  const mainContent = options.mainContent ?? `
+    <div class="content-heading">
+      <p>학교생활 대시보드</p>
+      <span>${escapeHtml(schoolName)}</span>
+    </div>
+    ${renderStatusMessage(content)}
+  `;
 
   container.innerHTML = `
     <div class="app-frame">
@@ -101,11 +109,7 @@ export function renderAppShell(container, activeView = 'home') {
         <nav class="tablet-navigation" aria-label="주요 메뉴">${navigation}</nav>
 
         <main class="primary-content" id="main-content" tabindex="-1" aria-labelledby="view-title">
-          <div class="content-heading">
-            <p>학교생활 대시보드</p>
-            <span>학교 미설정</span>
-          </div>
-          ${renderStatusMessage(content)}
+          ${mainContent}
         </main>
 
         <aside class="support-panel" aria-labelledby="support-title">
