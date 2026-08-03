@@ -158,7 +158,7 @@ function matchingAllergies(row, allergies) {
 }
 
 function renderMealsCard(profile, result, date) {
-  const row = (result.rows ?? []).find((item) => item.MLSV_YMD === date.key) ?? result.rows?.[0];
+  const row = (result.rows ?? []).find((item) => item.MLSV_YMD === date.key);
   const items = result.status === 'ok' ? mealItems(row) : [];
   const matched = matchingAllergies(row, profile.allergies ?? []);
   const failure = failureState(result.status, 'meals');

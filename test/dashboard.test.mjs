@@ -102,6 +102,26 @@ test('student dashboard shows a vertical full timetable beside today meals', asy
   assert.match(container.innerHTML, /다가오는 일정/);
 });
 
+test('dashboard never shows a different date meal when today has no meal service', async () => {
+  const container = createContainer();
+  const services = successfulServices();
+  services.fetchMeals = async () => ({
+    status: 'ok',
+    rows: [{ MLSV_YMD: '20260801', MMEAL_SC_NM: '중식', DDISH_NM: '지난 급식' }]
+  });
+  const view = renderDashboard(container, {
+    profile: profile('student'),
+    services,
+    now: new Date('2026-08-04T09:00:00+09:00')
+  });
+
+  await view.ready;
+
+  const meals = sectionMarkup(container.innerHTML, 'meals');
+  assert.match(meals, /오늘 등록된 급식 정보가 없어요/);
+  assert.doesNotMatch(meals, /지난 급식/);
+});
+
 test('parent dashboard names the child class and explains allergy information limits', async () => {
   const container = createContainer();
   const supportContainer = createContainer();
