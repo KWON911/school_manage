@@ -1,9 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
+import { readFile } from 'node:fs/promises';
 
 const require = createRequire(import.meta.url);
 const { isAllowedEndpoint, getAllowedParams } = require('../api/neis.js');
+
+test('Google OAuth uses the registered callback route instead of an action query', async () => {
+  const source = await readFile(new URL('../api/google-calendar.js', import.meta.url), 'utf8');
+  assert.match(source, /https:\/\/school-life-info\.vercel\.app\/api\/google-calendar\/callback/);
+});
 
 test('allows middle and high school timetable endpoints with the elementary timetable parameters', () => {
   assert.equal(isAllowedEndpoint('misTimetable'), true);

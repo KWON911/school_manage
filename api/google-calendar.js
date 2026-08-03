@@ -2,7 +2,7 @@ const crypto = require('node:crypto');
 
 const COOKIE_NAME = 'school_life_google_calendar';
 const STATE_COOKIE_NAME = 'school_life_google_state';
-const REDIRECT_URI = 'https://school-life-info.vercel.app/api/google-calendar?action=callback';
+const REDIRECT_URI = 'https://school-life-info.vercel.app/api/google-calendar/callback';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly';
 
