@@ -124,6 +124,9 @@ function calendarDays(date, rows, dateField = 'AA_YMD') {
 }
 
 function resourceState(kind, result) {
+  if (result.status === 'loading') {
+    return `<div class="module-state" role="status" aria-busy="true"><p>${kind === 'schedule' ? '일정을 불러오는 중이에요.' : '정보를 불러오는 중이에요.'}</p></div>`;
+  }
   if (result.status === 'missing-school') {
     return `<div class="module-state" role="status"><p>학교 설정이 필요해요. ${kind === 'schedule' ? '일정' : '급식'}을 불러올 학교를 선택해 주세요.</p>${settingsAction('school', '학교 설정으로 이동')}</div>`;
   }
@@ -292,13 +295,16 @@ function createModule(container, context, kind) {
     fetchCalendarEvents: requestCalendarEvents,
     ...(context.services ?? {})
   };
+  if (context.services && typeof context.services.fetchCalendarEvents !== 'function') {
+    services.fetchCalendarEvents = async () => ({ status: 'not-connected', rows: [] });
+  }
   const readNow = () => {
     const value = typeof context.now === 'function' ? context.now() : context.now;
     return value instanceof Date ? new Date(value) : new Date();
   };
   let selectedDate = readNow();
   let mode = kind === 'schedule' ? 'list' : kind === 'timetable' ? 'week' : 'day';
-  let result = { status: 'no-data', rows: [] };
+  let result = { status: 'loading', rows: [] };
   let destroyed = false;
   let loadVersion = 0;
   let pending;
@@ -431,6 +437,7 @@ function createModule(container, context, kind) {
 
   container.addEventListener?.('click', onClick);
   container.addEventListener?.('keydown', onKeyDown);
+  render();
   load();
   return {
     get ready() { return pending; },
