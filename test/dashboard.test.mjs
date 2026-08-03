@@ -165,6 +165,29 @@ test('home requests schedule data for the upcoming schedule card', async () => {
   assert.equal(scheduleRequests, 1);
 });
 
+test('dashboard combines personal calendar items with school events under a neutral schedule title', async () => {
+  const container = createContainer();
+  const services = successfulServices();
+  services.fetchCalendarEvents = async () => ({
+    status: 'ok',
+    rows: [{ start: '20260804', title: '치과 검진', timeLabel: '16:00' }]
+  });
+
+  const view = renderDashboard(container, {
+    profile: profile('parent'),
+    services,
+    now: new Date('2026-08-03T09:00:00+09:00')
+  });
+
+  await view.ready;
+
+  const upcoming = sectionMarkup(container.innerHTML, 'upcoming');
+  assert.match(upcoming, /일정 모아보기/);
+  assert.match(upcoming, /치과 검진/);
+  assert.match(upcoming, /개인 일정/);
+  assert.match(upcoming, /학교 일정/);
+});
+
 test('timetable states give a cause-specific explanation and next action', async () => {
   const cases = [
     {

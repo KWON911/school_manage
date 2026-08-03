@@ -3,6 +3,11 @@ import { getGradeOptions } from '../lib/school.mjs';
 import { getPeriodTimes } from '../lib/period-times.mjs';
 import { searchSchools as requestSchoolSearch } from '../services/neis.mjs';
 import {
+  beginGoogleCalendarConnection,
+  disconnectGoogleCalendar,
+  fetchCalendarStatus
+} from '../services/google-calendar.mjs';
+import {
   createDraft,
   createProfileCandidate,
   escapeHtml,
@@ -35,6 +40,20 @@ function searchMessage(state) {
 
 function renderPeriodTimeFields(periodTimes) {
   return `<div class="period-time-list">${getPeriodTimes(periodTimes).map((item) => `<div class="period-time-row"><strong>${escapeHtml(item.period)}교시</strong><label>시작 <input type="time" name="settingsPeriod-${escapeHtml(item.period)}-start" value="${escapeHtml(item.start)}"></label><label>종료 <input type="time" name="settingsPeriod-${escapeHtml(item.period)}-end" value="${escapeHtml(item.end)}"></label></div>`).join('')}</div><button class="period-time-add" type="button" data-action="settings-add-period">7·8교시 추가</button>`;
+}
+
+function renderCalendarConnection(status) {
+  const connected = status === 'connected';
+  return `<section class="settings-section calendar-connection" aria-labelledby="settings-calendar-title">
+    <div class="settings-section__heading">
+      <h2 id="settings-calendar-title">Google Calendar</h2>
+      <p>개인 일정은 학교 일정과 구분해 다가오는 일정에 함께 보여 드려요.</p>
+    </div>
+    <div class="calendar-connection__row">
+      <p class="calendar-connection__status">${connected ? '연결됨 · 개인 일정을 불러오고 있어요.' : '연결하지 않음 · Google 계정에서 읽기 권한을 허용해 주세요.'}</p>
+      <button class="button ${connected ? 'button--ghost' : 'button--secondary'}" type="button" data-action="${connected ? 'disconnect-google-calendar' : 'connect-google-calendar'}">${connected ? '연결 해제' : 'Google Calendar 연결'}</button>
+    </div>
+  </section>`;
 }
 
 export function renderSettingsMarkup(state = {}) {
@@ -103,6 +122,8 @@ export function renderSettingsMarkup(state = {}) {
         ${renderPeriodTimeFields(draft.periodTimes)}
       </section>
 
+      ${renderCalendarConnection(state.calendarStatus)}
+
       <section class="settings-section" aria-labelledby="settings-allergy-title">
         <div class="settings-section__heading">
           <h2 id="settings-allergy-title">급식 알레르기</h2>
@@ -166,7 +187,8 @@ export function renderSettings(container, context = {}) {
     searchMessage: '',
     results: [],
     errors: {},
-    feedback: context.feedback ?? ''
+    feedback: context.feedback ?? '',
+    calendarStatus: context.calendarStatus ?? 'unknown'
   };
   const render = () => { container.innerHTML = renderSettingsMarkup(state); };
   const storage = context.storage ?? globalThis.localStorage;
@@ -219,6 +241,14 @@ export function renderSettings(container, context = {}) {
     }
 
     if (event.target.closest?.('[data-action="settings-search-school"]')) void search();
+    if (event.target.closest?.('[data-action="connect-google-calendar"]')) {
+      beginGoogleCalendarConnection();
+      return;
+    }
+    if (event.target.closest?.('[data-action="disconnect-google-calendar"]')) {
+      void disconnectCalendar();
+      return;
+    }
     if (event.target.closest?.('[data-action="settings-add-period"]')) {
       const periods = getPeriodTimes(state.draft.periodTimes);
       const next = String(Math.max(...periods.map((item) => Number(item.period) || 0)) + 1);
@@ -284,6 +314,19 @@ export function renderSettings(container, context = {}) {
     }
     render();
   }
+
+  async function disconnectCalendar() {
+    const disconnected = await disconnectGoogleCalendar();
+    state.calendarStatus = disconnected ? 'disconnected' : 'connected';
+    state.feedback = disconnected ? 'Google Calendar 연결을 해제했어요.' : '연결을 해제하지 못했어요. 다시 시도해 주세요.';
+    render();
+  }
+
+  void fetchCalendarStatus().then((result) => {
+    if (result.status !== 'ok') return;
+    state.calendarStatus = result.connected ? 'connected' : 'disconnected';
+    render();
+  });
 
   container.addEventListener('input', onInput);
   container.addEventListener('change', onChange);

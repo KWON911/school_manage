@@ -3,6 +3,7 @@ import {
   fetchSchedule as requestSchedule,
   fetchTimetable as requestTimetable
 } from '../services/neis.mjs';
+import { fetchCalendarEvents as requestCalendarEvents } from '../services/google-calendar.mjs';
 import { getPeriodStatus } from '../lib/period-times.mjs';
 
 const ROLE_SECTIONS = {
@@ -171,16 +172,35 @@ function renderMealsCard(profile, result, date) {
   </article>`;
 }
 
-function renderUpcomingCard(result, date) {
-  const rows = result.status === 'ok'
-    ? (result.rows ?? []).filter((row) => /^\d{8}$/.test(row.AA_YMD) && row.AA_YMD >= date.key)
-      .sort((a, b) => String(a.AA_YMD).localeCompare(String(b.AA_YMD))).slice(0, 4)
-    : [];
-  const content = result.status === 'ok' && rows.length > 0
-    ? `<ol class="upcoming-list">${rows.map((row) => `<li><time><strong>${escapeHtml(String(row.AA_YMD).slice(4, 6))}.${escapeHtml(String(row.AA_YMD).slice(6, 8))}</strong><span>${escapeHtml(row.AA_YMD === date.key ? '오늘' : '예정')}</span></time><div><strong>${escapeHtml(row.EVENT_NM || '학교 일정')}</strong></div></li>`).join('')}</ol>`
+function calendarDateKey(value) {
+  return /^\d{8}$/.test(String(value ?? '')) ? String(value) : String(value ?? '').replaceAll('-', '').slice(0, 8);
+}
+
+function upcomingRows(schedule, calendar, date) {
+  const school = schedule.status === 'ok' ? (schedule.rows ?? []).map((row) => ({
+    date: row.AA_YMD,
+    title: row.EVENT_NM || '학교 일정',
+    source: '학교 일정'
+  })) : [];
+  const personal = calendar.status === 'ok' ? (calendar.rows ?? []).map((row) => ({
+    date: calendarDateKey(row.start),
+    title: row.title || '개인 일정',
+    timeLabel: row.timeLabel,
+    source: '개인 일정'
+  })) : [];
+  return [...school, ...personal]
+    .filter((row) => /^\d{8}$/.test(row.date) && row.date >= date.key)
+    .sort((a, b) => `${a.date}${a.timeLabel ?? ''}`.localeCompare(`${b.date}${b.timeLabel ?? ''}`))
+    .slice(0, 4);
+}
+
+function renderUpcomingCard(schedule, calendar, date) {
+  const rows = upcomingRows(schedule, calendar, date);
+  const content = rows.length > 0
+    ? `<ol class="upcoming-list">${rows.map((row) => `<li class="upcoming-list__item upcoming-list__item--${row.source === '개인 일정' ? 'personal' : 'school'}"><time><strong>${escapeHtml(String(row.date).slice(4, 6))}.${escapeHtml(String(row.date).slice(6, 8))}</strong><span>${escapeHtml(row.date === date.key ? '오늘' : row.timeLabel || '예정')}</span></time><div><strong>${escapeHtml(row.title)}</strong><span class="schedule-source">${escapeHtml(row.source)}</span></div></li>`).join('')}</ol>`
     : '<div class="dashboard-state" role="status"><p>다가오는 일정이 아직 없어요.</p></div>';
   return `<article class="dashboard-card dashboard-card--upcoming" data-dashboard-section="upcoming">
-    <div class="dashboard-card__heading"><p class="dashboard-card__eyebrow">학교 일정</p><h2>다가오는 일정</h2></div>
+    <div class="dashboard-card__heading"><p class="dashboard-card__eyebrow">일정 모아보기</p><h2>다가오는 일정</h2></div>
     ${content}
     ${action('schedule', '일정 전체 보기')}
   </article>`;
@@ -202,10 +222,12 @@ function renderLoading(container, profile) {
 
 export function renderDashboard(container, context = {}) {
   const profile = context.profile ?? {};
-  const services = context.services ?? {
+  const services = {
     fetchTimetable: requestTimetable,
     fetchMeals: requestMeals,
-    fetchSchedule: requestSchedule
+    fetchSchedule: requestSchedule,
+    fetchCalendarEvents: requestCalendarEvents,
+    ...(context.services ?? {})
   };
   const now = context.now instanceof Date ? context.now : new Date();
   const date = dateParts(now);
@@ -218,7 +240,7 @@ export function renderDashboard(container, context = {}) {
     const timetableKey = cacheKey(profile, date.key);
     const mealKey = cacheKey(profile, date.month);
     const needsMeals = getDashboardSections(profile.role).includes('meals');
-    const [timetable, meals, schedule] = await Promise.all([
+    const [timetable, meals, schedule, calendar] = await Promise.all([
       cachedRequest(caches.timetable, timetableKey, () => services.fetchTimetable(
         profile.school,
         profile.classSetting,
@@ -227,7 +249,8 @@ export function renderDashboard(container, context = {}) {
       needsMeals
         ? cachedRequest(caches.meals, mealKey, () => services.fetchMeals(profile.school, date.month))
         : Promise.resolve({ status: 'no-data', rows: [] }),
-      cachedRequest(caches.schedule, cacheKey(profile, date.month), () => services.fetchSchedule(profile.school, date.month))
+      cachedRequest(caches.schedule, cacheKey(profile, date.month), () => services.fetchSchedule(profile.school, date.month)),
+      services.fetchCalendarEvents(date.key, `${date.month}31`)
     ]);
     if (destroyed) return;
 
@@ -239,7 +262,7 @@ export function renderDashboard(container, context = {}) {
     });
     container.innerHTML = `<div class="content-heading"><p>오늘의 학교생활</p><span>${escapeHtml(profile.school?.name)}</span></div>
       <header class="dashboard-header"><h1 id="view-title">${greeting(profile.role)}</h1></header>
-      <div class="dashboard-overview"><div class="dashboard-stack">${sections.join('')}</div>${renderUpcomingCard(schedule, date)}</div>`;
+      <div class="dashboard-overview"><div class="dashboard-stack">${sections.join('')}</div>${renderUpcomingCard(schedule, calendar, date)}</div>`;
   }
 
   function onClick(event) {

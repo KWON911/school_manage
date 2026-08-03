@@ -187,6 +187,13 @@ test('settings markup keeps role, school, class, and allergy controls in one for
   assert.equal((markup.match(/type="time"/g) ?? []).length, 12);
 });
 
+test('settings provides a Google Calendar connection control', () => {
+  const markup = renderSettingsMarkup({ draft: completeDraft, results: [] });
+
+  assert.match(markup, /Google Calendar/);
+  assert.match(markup, /data-action="connect-google-calendar"/);
+});
+
 test('saving a changed school clears cached view data and persists only the complete profile', () => {
   const entries = new Map();
   const storage = {

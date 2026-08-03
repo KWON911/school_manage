@@ -1133,6 +1133,26 @@
   font-weight: 600;
 }
 
+.upcoming-list__item > div {
+  display: grid;
+  gap: 6px;
+}
+
+.schedule-source {
+  width: fit-content;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: var(--green);
+  background: rgba(212, 233, 226, 0.55);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.upcoming-list__item--personal .schedule-source {
+  color: var(--deep);
+  background: rgba(203, 162, 88, 0.18);
+}
+
 .module-calendar {
   min-width: 0;
 }
