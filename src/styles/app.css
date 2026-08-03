@@ -377,6 +377,37 @@
   letter-spacing: 0.04em;
 }
 
+.dashboard-card__date-controls {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.dashboard-card__date-controls button {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--deep);
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dashboard-card__date-controls button:hover {
+  border-color: var(--green);
+  background: var(--mint);
+}
+
+.dashboard-card__date-controls time {
+  flex: 1;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
 .timetable-preview,
 .meal-preview,
 .schedule-preview,

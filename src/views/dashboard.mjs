@@ -40,6 +40,23 @@ function monthEndKey(date) {
   return dateParts(new Date(date.getFullYear(), date.getMonth() + 1, 0)).key;
 }
 
+function moveDate(date, direction) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + (direction === 'previous' ? -1 : 1));
+  return next;
+}
+
+function dashboardDateControls(kind, date, now) {
+  const label = kind === 'timetable' ? '시간표' : '급식';
+  const selected = date instanceof Date ? dateParts(date) : date;
+  const isToday = selected.key === dateParts(now).key;
+  return `<div class="dashboard-card__date-controls" aria-label="${label} 날짜 이동">
+    <button type="button" data-dashboard-date="${kind}" data-direction="previous">이전 날짜</button>
+    <time datetime="${selected.key.slice(0, 4)}-${selected.key.slice(4, 6)}-${selected.key.slice(6)}">${isToday ? '오늘' : selected.label}</time>
+    <button type="button" data-dashboard-date="${kind}" data-direction="next">다음 날짜</button>
+  </div>`;
+}
+
 function cacheKey(profile, suffix) {
   const school = profile.school ?? {};
   const classSetting = profile.classSetting ?? {};
@@ -114,11 +131,13 @@ function renderTimetableCard(section, profile, result, date, now) {
   const isParent = section === 'child-class';
   const classLabel = `${escapeHtml(profile.classSetting?.grade)}학년 ${escapeHtml(profile.classSetting?.classNm)}반`;
   const title = '오늘 시간표';
+  const dateControls = dashboardDateControls('timetable', date, now);
   if (result.status !== 'ok') {
     return `<article class="dashboard-card dashboard-card--timetable" data-dashboard-section="${section}">
       <div class="dashboard-card__heading">
         <p class="dashboard-card__eyebrow">오늘의 수업</p>
         <h2>${title}</h2>
+        ${dateControls}
       </div>
       <div class="dashboard-state" role="status">
         <p>${stateMessage(result.status, date.label)}</p>
@@ -128,11 +147,12 @@ function renderTimetableCard(section, profile, result, date, now) {
   }
 
   const rows = timetableRows(result, date.key);
-  if (rows.length === 0) return renderTimetableCard(section, profile, { status: 'no-data' }, date);
+  if (rows.length === 0) return renderTimetableCard(section, profile, { status: 'no-data' }, date, now);
   return `<article class="dashboard-card dashboard-card--timetable" data-dashboard-section="${section}">
     <div class="dashboard-card__heading">
       <p class="dashboard-card__eyebrow">${isParent ? `${classLabel} 자녀 수업` : classLabel}</p>
       <h2>${title}</h2>
+      ${dateControls}
     </div>
     <ol class="timetable-preview timetable-preview--vertical" aria-label="오늘 시간표">
       ${rows.map((row) => {
@@ -157,7 +177,7 @@ function matchingAllergies(row, allergies) {
   return allergies.filter((code) => new RegExp(`(^|[.(,\\s])${String(code).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[.),\\s])`).test(notation));
 }
 
-function renderMealsCard(profile, result, date) {
+function renderMealsCard(profile, result, date, now) {
   const row = (result.rows ?? []).find((item) => item.MLSV_YMD === date.key);
   const items = result.status === 'ok' ? mealItems(row) : [];
   const matched = matchingAllergies(row, profile.allergies ?? []);
@@ -166,6 +186,7 @@ function renderMealsCard(profile, result, date) {
     <div class="dashboard-card__heading">
       <p class="dashboard-card__eyebrow">오늘의 급식</p>
       <h2>${escapeHtml(row?.MMEAL_SC_NM ?? '점심 식단')}</h2>
+      ${dashboardDateControls('meals', date, now)}
     </div>
     ${failure ?? (items.length > 0
       ? `<ul class="meal-preview">${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`
@@ -235,34 +256,40 @@ export function renderDashboard(container, context = {}) {
   };
   const now = context.now instanceof Date ? context.now : new Date();
   const date = dateParts(now);
+  let timetableDate = new Date(now);
+  let mealsDate = new Date(now);
   const caches = context.viewData ?? {};
   let destroyed = false;
+  let loadVersion = 0;
 
   renderLoading(container, profile);
 
   async function load() {
-    const timetableKey = cacheKey(profile, date.key);
-    const mealKey = cacheKey(profile, date.month);
+    const version = ++loadVersion;
+    const timetableDay = dateParts(timetableDate);
+    const mealsDay = dateParts(mealsDate);
+    const timetableKey = cacheKey(profile, timetableDay.key);
+    const mealKey = cacheKey(profile, mealsDay.month);
     const needsMeals = getDashboardSections(profile.role).includes('meals');
     const [timetable, meals, schedule, calendar] = await Promise.all([
       cachedRequest(caches.timetable, timetableKey, () => services.fetchTimetable(
         profile.school,
         profile.classSetting,
-        { from: date.key, to: date.key }
+        { from: timetableDay.key, to: timetableDay.key }
       )),
       needsMeals
-        ? cachedRequest(caches.meals, mealKey, () => services.fetchMeals(profile.school, date.month))
+        ? cachedRequest(caches.meals, mealKey, () => services.fetchMeals(profile.school, mealsDay.month))
         : Promise.resolve({ status: 'no-data', rows: [] }),
       cachedRequest(caches.schedule, cacheKey(profile, date.month), () => services.fetchSchedule(profile.school, date.month)),
       services.fetchCalendarEvents(date.key, monthEndKey(now), profile.calendarIds)
     ]);
-    if (destroyed) return;
+    if (destroyed || version !== loadVersion) return;
 
     const sections = getDashboardSections(profile.role).filter((section) => section !== 'upcoming').map((section) => {
       if (section === 'timetable' || section === 'child-class') {
-        return renderTimetableCard(section, profile, timetable, date, now);
+        return renderTimetableCard(section, profile, timetable, timetableDay, now);
       }
-      return renderMealsCard(profile, meals, date);
+      return renderMealsCard(profile, meals, mealsDay, now);
     });
     container.innerHTML = `<div class="content-heading"><p>오늘의 학교생활</p><span>${escapeHtml(profile.school?.name)}</span></div>
       <header class="dashboard-header"><h1 id="view-title">${greeting(profile.role)}</h1></header>
@@ -270,6 +297,18 @@ export function renderDashboard(container, context = {}) {
   }
 
   function onClick(event) {
+    const dateButton = event.target.closest?.('[data-dashboard-date]');
+    if (dateButton) {
+      if (dateButton.dataset.dashboardDate === 'timetable') {
+        timetableDate = moveDate(timetableDate, dateButton.dataset.direction);
+      }
+      if (dateButton.dataset.dashboardDate === 'meals') {
+        mealsDate = moveDate(mealsDate, dateButton.dataset.direction);
+      }
+      renderLoading(container, profile);
+      void load();
+      return;
+    }
     if (!event.target.closest?.('[data-action="retry-dashboard"]')) return;
     Object.values(caches).forEach((cache) => cache?.clear?.());
     renderLoading(container, profile);
