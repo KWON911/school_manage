@@ -318,11 +318,20 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.dashboard-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.58fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.dashboard-stack { display: grid; gap: 16px; }
+
 .dashboard-card {
   position: relative;
   display: flex;
-  min-height: 290px;
-  padding: 28px;
+  min-height: 0;
+  padding: 24px;
   overflow: hidden;
   border: 1px solid rgba(30, 57, 50, 0.07);
   border-radius: var(--radius-card);
@@ -388,7 +397,7 @@
 }
 
 .timetable-preview--vertical li {
-  grid-template-columns: 52px minmax(0, 1fr);
+  grid-template-columns: 52px minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
 }
@@ -417,6 +426,9 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.class-status { min-width: 54px; padding: 5px 8px; border-radius: 999px; color: var(--green); background: rgba(212, 233, 226, 0.55); font-size: 11px; font-style: normal; font-weight: 700; text-align: center; }
+.class-status.is-current { color: var(--action); }
 
 .meal-preview,
 .schedule-preview {
@@ -477,21 +489,30 @@
 }
 
 .dashboard-card__action {
-  width: fit-content;
+  width: 100%;
   min-height: 44px;
-  margin-top: auto;
-  padding: 0;
-  border: 0;
-  border-bottom: 1px solid currentColor;
-  color: var(--action);
-  background: transparent;
+  margin-top: 12px;
+  padding: 0 14px;
+  border: 1px solid rgba(30, 57, 50, 0.22);
+  border-radius: 10px;
+  color: var(--deep);
+  background: rgba(250, 249, 244, 0.7);
   font-size: 13px;
   font-weight: 700;
 }
 
 .dashboard-card__action:hover {
-  color: var(--deep);
+  border-color: var(--green);
+  background: var(--mint);
 }
+
+.upcoming-list { display: grid; margin: 18px 0 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.upcoming-list li { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; padding: 12px; align-items: center; }
+.upcoming-list li + li { border-top: 1px solid var(--line); }
+.upcoming-list time { display: grid; min-height: 48px; place-items: center; border-radius: 10px; color: var(--deep); background: rgba(203, 162, 88, 0.12); }
+.upcoming-list time strong { font-size: 15px; }
+.upcoming-list time span { font-size: 11px; }
+.upcoming-list > li > div strong { color: var(--deep); font-size: 14px; line-height: 1.4; }
 
 .dashboard-card--loading {
   min-height: 290px;
@@ -1491,6 +1512,8 @@
   .dashboard-cards--split {
     grid-template-columns: 1fr;
   }
+
+  .dashboard-overview { grid-template-columns: 1fr; }
 
   .dashboard-card {
     min-height: 270px;

@@ -207,7 +207,7 @@ test('a complete saved profile opens the dashboard shell', () => {
   mountApp(container, { storage: createProfileStorage() });
 
   assert.match(container.innerHTML, /class="app-shell"/);
-  assert.match(container.innerHTML, /class="dashboard-cards"/);
+  assert.match(container.innerHTML, /class="dashboard-overview"/);
   assert.doesNotMatch(container.innerHTML, /data-setup-form/);
 });
 

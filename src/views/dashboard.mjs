@@ -1,12 +1,13 @@
 import {
   fetchMeals as requestMeals,
+  fetchSchedule as requestSchedule,
   fetchTimetable as requestTimetable
 } from '../services/neis.mjs';
 
 const ROLE_SECTIONS = {
-  student: ['timetable', 'meals'],
-  parent: ['child-class', 'meals'],
-  teacher: ['timetable', 'meals']
+  student: ['timetable', 'meals', 'upcoming'],
+  parent: ['child-class', 'meals', 'upcoming'],
+  teacher: ['timetable', 'meals', 'upcoming']
 };
 
 export function getDashboardSections(role) {
@@ -106,7 +107,7 @@ function timetableRows(result, dateKey) {
 function renderTimetableCard(section, profile, result, date) {
   const isParent = section === 'child-class';
   const classLabel = `${escapeHtml(profile.classSetting?.grade)}학년 ${escapeHtml(profile.classSetting?.classNm)}반`;
-  const title = isParent ? `${classLabel} 자녀 수업` : `${classLabel} 시간표`;
+  const title = '오늘 시간표';
   if (result.status !== 'ok') {
     return `<article class="dashboard-card dashboard-card--timetable" data-dashboard-section="${section}">
       <div class="dashboard-card__heading">
@@ -124,11 +125,11 @@ function renderTimetableCard(section, profile, result, date) {
   if (rows.length === 0) return renderTimetableCard(section, profile, { status: 'no-data' }, date);
   return `<article class="dashboard-card dashboard-card--timetable" data-dashboard-section="${section}">
     <div class="dashboard-card__heading">
-      <p class="dashboard-card__eyebrow">${isParent ? '자녀의 오늘' : '오늘 시간표'}</p>
+      <p class="dashboard-card__eyebrow">${isParent ? `${classLabel} 자녀 수업` : classLabel}</p>
       <h2>${title}</h2>
     </div>
     <ol class="timetable-preview timetable-preview--vertical" aria-label="오늘 시간표">
-      ${rows.map((row) => `<li><span>${escapeHtml(row.PERIO)}교시</span><strong>${escapeHtml(row.ITRT_CNTNT || '수업 정보 없음')}</strong></li>`).join('')}
+      ${rows.map((row, index) => `<li><span>${escapeHtml(row.PERIO)}교시</span><strong>${escapeHtml(row.ITRT_CNTNT || '수업 정보 없음')}</strong><em class="class-status${index === 0 ? ' is-current' : ''}">${index === 0 ? '진행중' : '예정'}</em></li>`).join('')}
     </ol>
     ${action('timetable', '시간표 전체 보기')}
   </article>`;
@@ -165,10 +166,29 @@ function renderMealsCard(profile, result, date) {
   </article>`;
 }
 
+function renderUpcomingCard(result, date) {
+  const rows = result.status === 'ok'
+    ? (result.rows ?? []).filter((row) => /^\d{8}$/.test(row.AA_YMD) && row.AA_YMD >= date.key)
+      .sort((a, b) => String(a.AA_YMD).localeCompare(String(b.AA_YMD))).slice(0, 4)
+    : [];
+  const content = result.status === 'ok' && rows.length > 0
+    ? `<ol class="upcoming-list">${rows.map((row) => `<li><time><strong>${escapeHtml(String(row.AA_YMD).slice(4, 6))}.${escapeHtml(String(row.AA_YMD).slice(6, 8))}</strong><span>${escapeHtml(row.AA_YMD === date.key ? '오늘' : '예정')}</span></time><div><strong>${escapeHtml(row.EVENT_NM || '학교 일정')}</strong></div></li>`).join('')}</ol>`
+    : '<div class="dashboard-state" role="status"><p>다가오는 일정이 아직 없어요.</p></div>';
+  return `<article class="dashboard-card dashboard-card--upcoming" data-dashboard-section="upcoming">
+    <div class="dashboard-card__heading"><p class="dashboard-card__eyebrow">학교 일정</p><h2>다가오는 일정</h2></div>
+    ${content}
+    ${action('schedule', '일정 전체 보기')}
+  </article>`;
+}
+
+function greeting(role) {
+  return { student: '안녕하세요, 학생님', parent: '안녕하세요, 보호자님', teacher: '안녕하세요, 선생님' }[role] ?? '안녕하세요';
+}
+
 export function renderDashboardLoadingMarkup(profile = {}) {
   return `<div class="content-heading"><p>오늘의 학교생활</p><span>${escapeHtml(profile.school?.name)}</span></div>
-    <header class="dashboard-header"><p class="eyebrow">한눈에 준비하는 하루</p><h1 id="view-title">오늘 필요한 것부터 볼까요?</h1></header>
-    <div class="dashboard-cards" aria-busy="true"><div class="dashboard-card dashboard-card--loading"></div><div class="dashboard-card dashboard-card--loading"></div></div>`;
+    <header class="dashboard-header"><h1 id="view-title">${greeting(profile.role)}</h1></header>
+    <div class="dashboard-overview" aria-busy="true"><div class="dashboard-stack"><div class="dashboard-card dashboard-card--loading"></div><div class="dashboard-card dashboard-card--loading"></div></div><div class="dashboard-card dashboard-card--loading"></div></div>`;
 }
 
 function renderLoading(container, profile) {
@@ -179,7 +199,8 @@ export function renderDashboard(container, context = {}) {
   const profile = context.profile ?? {};
   const services = context.services ?? {
     fetchTimetable: requestTimetable,
-    fetchMeals: requestMeals
+    fetchMeals: requestMeals,
+    fetchSchedule: requestSchedule
   };
   const now = context.now instanceof Date ? context.now : new Date();
   const date = dateParts(now);
@@ -192,7 +213,7 @@ export function renderDashboard(container, context = {}) {
     const timetableKey = cacheKey(profile, date.key);
     const mealKey = cacheKey(profile, date.month);
     const needsMeals = getDashboardSections(profile.role).includes('meals');
-    const [timetable, meals] = await Promise.all([
+    const [timetable, meals, schedule] = await Promise.all([
       cachedRequest(caches.timetable, timetableKey, () => services.fetchTimetable(
         profile.school,
         profile.classSetting,
@@ -200,19 +221,20 @@ export function renderDashboard(container, context = {}) {
       )),
       needsMeals
         ? cachedRequest(caches.meals, mealKey, () => services.fetchMeals(profile.school, date.month))
-        : Promise.resolve({ status: 'no-data', rows: [] })
+        : Promise.resolve({ status: 'no-data', rows: [] }),
+      cachedRequest(caches.schedule, cacheKey(profile, date.month), () => services.fetchSchedule(profile.school, date.month))
     ]);
     if (destroyed) return;
 
-    const sections = getDashboardSections(profile.role).slice(0, 2).map((section) => {
+    const sections = getDashboardSections(profile.role).filter((section) => section !== 'upcoming').map((section) => {
       if (section === 'timetable' || section === 'child-class') {
         return renderTimetableCard(section, profile, timetable, date);
       }
       return renderMealsCard(profile, meals, date);
     });
     container.innerHTML = `<div class="content-heading"><p>오늘의 학교생활</p><span>${escapeHtml(profile.school?.name)}</span></div>
-      <header class="dashboard-header"><p class="eyebrow">${date.label}</p><h1 id="view-title">오늘 필요한 것부터 볼까요?</h1></header>
-      <div class="dashboard-cards dashboard-cards--split">${sections.join('')}</div>`;
+      <header class="dashboard-header"><h1 id="view-title">${greeting(profile.role)}</h1></header>
+      <div class="dashboard-overview"><div class="dashboard-stack">${sections.join('')}</div>${renderUpcomingCard(schedule, date)}</div>`;
   }
 
   function onClick(event) {

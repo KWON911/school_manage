@@ -67,16 +67,16 @@ function sectionMarkup(html, section) {
   return html.match(pattern)?.[0] ?? '';
 }
 
-test('dashboard home has no upcoming-event section for any role', () => {
-  assert.deepEqual(getDashboardSections('student'), ['timetable', 'meals']);
-  assert.deepEqual(getDashboardSections('parent'), ['child-class', 'meals']);
-  assert.deepEqual(getDashboardSections('teacher'), ['timetable', 'meals']);
+test('dashboard home puts upcoming schedules beside timetable and meals', () => {
+  assert.deepEqual(getDashboardSections('student'), ['timetable', 'meals', 'upcoming']);
+  assert.deepEqual(getDashboardSections('parent'), ['child-class', 'meals', 'upcoming']);
+  assert.deepEqual(getDashboardSections('teacher'), ['timetable', 'meals', 'upcoming']);
 });
 
-test('dashboard sections use timetable and meals for every role', () => {
-  assert.deepEqual(getDashboardSections('student'), ['timetable', 'meals']);
-  assert.deepEqual(getDashboardSections('parent'), ['child-class', 'meals']);
-  assert.deepEqual(getDashboardSections('teacher'), ['timetable', 'meals']);
+test('dashboard sections use timetable, meals, and schedule for every role', () => {
+  assert.deepEqual(getDashboardSections('student'), ['timetable', 'meals', 'upcoming']);
+  assert.deepEqual(getDashboardSections('parent'), ['child-class', 'meals', 'upcoming']);
+  assert.deepEqual(getDashboardSections('teacher'), ['timetable', 'meals', 'upcoming']);
 });
 
 test('student dashboard shows a vertical full timetable beside today meals', async () => {
@@ -95,11 +95,11 @@ test('student dashboard shows a vertical full timetable beside today meals', asy
     < container.innerHTML.indexOf('data-dashboard-section="meals"'));
   assert.match(container.innerHTML, /1교시/);
   assert.match(container.innerHTML, /현미밥/);
-  assert.equal((container.innerHTML.match(/data-view=/g) ?? []).length, 2);
-  assert.match(container.innerHTML, /dashboard-cards--split/);
+  assert.equal((container.innerHTML.match(/data-view=/g) ?? []).length, 3);
+  assert.match(container.innerHTML, /dashboard-overview/);
   assert.match(container.innerHTML, /timetable-preview--vertical/);
-  assert.doesNotMatch(container.innerHTML, /next-class|한 눈에 보기|다가오는 학교생활/);
-  assert.equal(supportContainer.innerHTML, '');
+  assert.match(container.innerHTML, /data-dashboard-section="upcoming"/);
+  assert.match(container.innerHTML, /다가오는 일정/);
 });
 
 test('parent dashboard names the child class and explains allergy information limits', async () => {
@@ -139,14 +139,14 @@ test('teacher dashboard shows the selected class timetable and meals', async () 
 
   await view.ready;
 
-  assert.match(container.innerHTML, /2학년 3반 시간표/);
+  assert.match(container.innerHTML, /2학년 3반/);
   assert.match(container.innerHTML, /오늘의 급식/);
   assert.ok(container.innerHTML.indexOf('data-dashboard-section="timetable"')
     < container.innerHTML.indexOf('data-dashboard-section="meals"'));
   assert.equal(mealRequests, 1);
 });
 
-test('home does not request schedule data after removing the upcoming card', async () => {
+test('home requests schedule data for the upcoming schedule card', async () => {
   const container = createContainer();
   const services = successfulServices();
   let scheduleRequests = 0;
@@ -162,7 +162,7 @@ test('home does not request schedule data after removing the upcoming card', asy
   });
 
   await view.ready;
-  assert.equal(scheduleRequests, 0);
+  assert.equal(scheduleRequests, 1);
 });
 
 test('timetable states give a cause-specific explanation and next action', async () => {
