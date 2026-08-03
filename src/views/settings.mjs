@@ -1,5 +1,6 @@
 import { saveProfile } from '../lib/storage.mjs';
 import { getGradeOptions } from '../lib/school.mjs';
+import { getPeriodTimes } from '../lib/period-times.mjs';
 import { searchSchools as requestSchoolSearch } from '../services/neis.mjs';
 import {
   createDraft,
@@ -30,6 +31,10 @@ export function persistSettingsProfile({ storage, previousProfile, draft, clearV
 function searchMessage(state) {
   if (!state.searchMessage) return '';
   return `<p class="form-message${state.searchStatus === 'error' ? ' is-error' : ''}" id="settings-school-message" role="${state.searchStatus === 'error' ? 'alert' : 'status'}">${escapeHtml(state.searchMessage)}</p>`;
+}
+
+function renderPeriodTimeFields(periodTimes) {
+  return `<div class="period-time-list">${getPeriodTimes(periodTimes).map((item) => `<div class="period-time-row"><strong>${escapeHtml(item.period)}교시</strong><label>시작 <input type="time" name="settingsPeriod-${escapeHtml(item.period)}-start" value="${escapeHtml(item.start)}"></label><label>종료 <input type="time" name="settingsPeriod-${escapeHtml(item.period)}-end" value="${escapeHtml(item.end)}"></label></div>`).join('')}</div><button class="period-time-add" type="button" data-action="settings-add-period">7·8교시 추가</button>`;
 }
 
 export function renderSettingsMarkup(state = {}) {
@@ -88,6 +93,14 @@ export function renderSettingsMarkup(state = {}) {
           </label>
         </div>
         ${errors.classSetting ? `<p class="form-message is-error" role="alert">${escapeHtml(errors.classSetting)}</p>` : ''}
+      </section>
+
+      <section class="settings-section" aria-labelledby="settings-period-title">
+        <div class="settings-section__heading">
+          <h2 id="settings-period-title">교시 시간</h2>
+          <p>홈 시간표의 종료·진행 중·예정 표시에 사용해요. 7·8교시는 필요할 때 추가할 수 있어요.</p>
+        </div>
+        ${renderPeriodTimeFields(draft.periodTimes)}
       </section>
 
       <section class="settings-section" aria-labelledby="settings-allergy-title">
@@ -167,6 +180,13 @@ export function renderSettings(container, context = {}) {
         classNm: event.target.value
       };
     }
+    const periodMatch = /^settingsPeriod-(\d+)-(start|end)$/.exec(event.target.name ?? '');
+    if (periodMatch) {
+      const [, period, field] = periodMatch;
+      state.draft.periodTimes = getPeriodTimes(state.draft.periodTimes).map((item) => (
+        item.period === period ? { ...item, [field]: event.target.value } : item
+      ));
+    }
   }
 
   function onChange(event) {
@@ -199,6 +219,12 @@ export function renderSettings(container, context = {}) {
     }
 
     if (event.target.closest?.('[data-action="settings-search-school"]')) void search();
+    if (event.target.closest?.('[data-action="settings-add-period"]')) {
+      const periods = getPeriodTimes(state.draft.periodTimes);
+      const next = String(Math.max(...periods.map((item) => Number(item.period) || 0)) + 1);
+      state.draft.periodTimes = [...periods, { period: next, start: '', end: '' }];
+      render();
+    }
   }
 
   function onSubmit(event) {

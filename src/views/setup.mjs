@@ -1,4 +1,5 @@
 import { getGradeOptions, isSupportedSchoolKind } from '../lib/school.mjs';
+import { getPeriodTimes } from '../lib/period-times.mjs';
 import { isProfileComplete, saveProfile } from '../lib/storage.mjs';
 import { searchSchools as requestSchoolSearch } from '../services/neis.mjs';
 
@@ -48,7 +49,8 @@ export function createDraft(profile = {}) {
     classSetting: profile?.classSetting
       ? { grade: profile.classSetting.grade ?? '', classNm: profile.classSetting.classNm ?? '' }
       : null,
-    allergies: Array.isArray(profile?.allergies) ? [...profile.allergies] : []
+    allergies: Array.isArray(profile?.allergies) ? [...profile.allergies] : [],
+    periodTimes: Array.isArray(profile?.periodTimes) ? profile.periodTimes.map((item) => ({ ...item })) : null
   };
 }
 
@@ -66,7 +68,13 @@ export function createProfileCandidate(draft, { skipAllergies = false } = {}) {
     ? []
     : [...new Set((Array.isArray(draft?.allergies) ? draft.allergies : [])
       .filter((value) => ALLERGY_OPTIONS.some(([id]) => id === value)))];
-  const profile = { role, school, classSetting: { grade, classNm }, allergies };
+  const profile = {
+    role,
+    school,
+    classSetting: { grade, classNm },
+    allergies,
+    ...(Array.isArray(draft?.periodTimes) ? { periodTimes: getPeriodTimes(draft.periodTimes).map((item) => ({ ...item })) } : {})
+  };
   return isProfileComplete(profile) ? profile : null;
 }
 

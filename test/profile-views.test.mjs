@@ -184,6 +184,7 @@ test('settings markup keeps role, school, class, and allergy controls in one for
   assert.match(markup, /<section[^>]*aria-labelledby="settings-school-title"/);
   assert.match(markup, /<section[^>]*aria-labelledby="settings-class-title"/);
   assert.match(markup, /<section[^>]*aria-labelledby="settings-allergy-title"/);
+  assert.equal((markup.match(/type="time"/g) ?? []).length, 12);
 });
 
 test('saving a changed school clears cached view data and persists only the complete profile', () => {

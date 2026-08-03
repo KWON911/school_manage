@@ -3,6 +3,7 @@ import {
   fetchSchedule as requestSchedule,
   fetchTimetable as requestTimetable
 } from '../services/neis.mjs';
+import { getPeriodStatus } from '../lib/period-times.mjs';
 
 const ROLE_SECTIONS = {
   student: ['timetable', 'meals', 'upcoming'],
@@ -104,7 +105,7 @@ function timetableRows(result, dateKey) {
     .sort((a, b) => Number(a.PERIO) - Number(b.PERIO));
 }
 
-function renderTimetableCard(section, profile, result, date) {
+function renderTimetableCard(section, profile, result, date, now) {
   const isParent = section === 'child-class';
   const classLabel = `${escapeHtml(profile.classSetting?.grade)}학년 ${escapeHtml(profile.classSetting?.classNm)}반`;
   const title = '오늘 시간표';
@@ -129,7 +130,11 @@ function renderTimetableCard(section, profile, result, date) {
       <h2>${title}</h2>
     </div>
     <ol class="timetable-preview timetable-preview--vertical" aria-label="오늘 시간표">
-      ${rows.map((row, index) => `<li><span>${escapeHtml(row.PERIO)}교시</span><strong>${escapeHtml(row.ITRT_CNTNT || '수업 정보 없음')}</strong><em class="class-status${index === 0 ? ' is-current' : ''}">${index === 0 ? '진행중' : '예정'}</em></li>`).join('')}
+      ${rows.map((row) => {
+        const status = getPeriodStatus(row.PERIO, profile.periodTimes, `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+        const label = { current: '진행중', completed: '종료', upcoming: '예정' }[status];
+        return `<li><span>${escapeHtml(row.PERIO)}교시</span><strong>${escapeHtml(row.ITRT_CNTNT || '수업 정보 없음')}</strong><em class="class-status${status === 'current' ? ' is-current' : ''}">${label}</em></li>`;
+      }).join('')}
     </ol>
     ${action('timetable', '시간표 전체 보기')}
   </article>`;
@@ -228,7 +233,7 @@ export function renderDashboard(container, context = {}) {
 
     const sections = getDashboardSections(profile.role).filter((section) => section !== 'upcoming').map((section) => {
       if (section === 'timetable' || section === 'child-class') {
-        return renderTimetableCard(section, profile, timetable, date);
+        return renderTimetableCard(section, profile, timetable, date, now);
       }
       return renderMealsCard(profile, meals, date);
     });
