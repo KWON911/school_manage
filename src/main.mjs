@@ -10,7 +10,14 @@ export function mountApp(container) {
 
   container.addEventListener('click', (event) => {
     const control = event.target.closest?.('[data-view]');
-    if (control) appState.setView(control.dataset.view);
+    if (!control) return;
+
+    const previousView = appState.getState().activeView;
+    appState.setView(control.dataset.view);
+
+    if (appState.getState().activeView !== previousView) {
+      container.querySelector?.('#main-content')?.focus();
+    }
   });
 
   return appState;

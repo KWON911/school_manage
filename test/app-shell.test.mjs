@@ -12,6 +12,58 @@ import {
 } from '../src/components.mjs';
 import { mountApp } from '../src/main.mjs';
 
+function createFocusTrackingDom() {
+  const listeners = new Map();
+  const ownerDocument = { activeElement: null };
+  let html = '';
+  let mainContent = null;
+
+  const container = {
+    ownerDocument,
+    get innerHTML() {
+      return html;
+    },
+    set innerHTML(value) {
+      if (ownerDocument.activeElement) ownerDocument.activeElement.isConnected = false;
+      ownerDocument.activeElement = null;
+      html = value;
+      mainContent = {
+        id: 'main-content',
+        isConnected: true,
+        focus() {
+          ownerDocument.activeElement = mainContent;
+        }
+      };
+    },
+    addEventListener(type, listener) {
+      listeners.set(type, listener);
+    },
+    querySelector(selector) {
+      return selector === '#main-content' ? mainContent : null;
+    }
+  };
+
+  return {
+    container,
+    ownerDocument,
+    click(view) {
+      const button = {
+        dataset: { view },
+        isConnected: true,
+        closest(selector) {
+          return selector === '[data-view]' ? button : null;
+        },
+        focus() {
+          ownerDocument.activeElement = button;
+        }
+      };
+
+      button.focus();
+      listeners.get('click')({ target: button });
+    }
+  };
+}
+
 test('navigation identifies one active item for every supported view', () => {
   const expectedViews = ['home', 'schedule', 'timetable', 'meals', 'settings'];
 
@@ -97,4 +149,13 @@ test('mounted shell changes view through delegated navigation clicks', () => {
 
   assert.equal(appState.getState().activeView, 'meals');
   assert.match(container.innerHTML, /data-view="meals"[^>]*aria-current="page"/);
+});
+
+test('navigation restores focus to main content after replacing the active button', () => {
+  const dom = createFocusTrackingDom();
+
+  mountApp(dom.container);
+  dom.click('timetable');
+
+  assert.equal(dom.ownerDocument.activeElement, dom.container.querySelector('#main-content'));
 });
