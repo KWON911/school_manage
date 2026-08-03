@@ -142,3 +142,21 @@ export function fetchMeals(school, yearMonth) {
     ...schoolParams(school), MLSV_FROM_YMD: range?.from, MLSV_TO_YMD: range?.to
   });
 }
+
+export function getMealAllergyCodes(row) {
+  const codes = [];
+  const notation = String(row?.DDISH_NM ?? '');
+  for (const group of notation.matchAll(/\((\d+(?:\.\d+)*\.?)\)/g)) {
+    for (const code of group[1].split('.').filter(Boolean)) {
+      if (!codes.includes(code)) codes.push(code);
+    }
+  }
+  return codes;
+}
+
+export function mealMatchesAllergies(row, allergies = []) {
+  const mealCodes = new Set(getMealAllergyCodes(row));
+  return (Array.isArray(allergies) ? allergies : [])
+    .map(String)
+    .filter((code, index, selected) => mealCodes.has(code) && selected.indexOf(code) === index);
+}

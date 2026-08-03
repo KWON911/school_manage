@@ -124,3 +124,12 @@ test('treats a NEIS RESULT error payload without rows as a server error', async 
     globalThis.fetch = originalFetch;
   }
 });
+
+test('meal allergy matching compares complete NEIS numbers instead of substrings', async () => {
+  const { getMealAllergyCodes, mealMatchesAllergies } = await import('../src/services/neis.mjs');
+  const meal = { DDISH_NM: '콩나물국(5.6.)<br/>소시지볶음(11.13.)<br/>계란찜(1.)' };
+
+  assert.deepEqual(getMealAllergyCodes(meal), ['5', '6', '11', '13', '1']);
+  assert.deepEqual(mealMatchesAllergies(meal, ['1', '6', '16']), ['1', '6']);
+  assert.deepEqual(mealMatchesAllergies({ DDISH_NM: '소시지(11.)' }, ['1']), []);
+});

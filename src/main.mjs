@@ -2,6 +2,11 @@ import { renderAppShell } from './components.mjs';
 import { isProfileComplete, readProfile } from './lib/storage.mjs';
 import { createAppState } from './state/app-state.mjs';
 import { renderDashboard, renderDashboardLoadingMarkup } from './views/dashboard.mjs';
+import {
+  renderMealsModule,
+  renderScheduleModule,
+  renderTimetableModule
+} from './views/modules.mjs';
 import { renderSetup } from './views/setup.mjs';
 import { renderSettings, renderSettingsMarkup } from './views/settings.mjs';
 
@@ -36,6 +41,9 @@ export function mountApp(container, options = {}) {
         feedback: settingsFeedback,
         results: []
       });
+    } else {
+      const titles = { schedule: '일정', timetable: '시간표', meals: '급식' };
+      shellOptions.mainContent = `<header class="module-header"><p class="eyebrow">학교 정보</p><h1 id="view-title">${titles[activeView]}</h1></header><div class="module-state" role="status" aria-busy="true">불러오는 중…</div>`;
     }
     renderAppShell(container, activeView, shellOptions);
 
@@ -61,6 +69,21 @@ export function mountApp(container, options = {}) {
         });
       }
       settingsFeedback = '';
+    } else {
+      const mainContent = container.querySelector?.('#main-content');
+      const renderModule = {
+        schedule: renderScheduleModule,
+        timetable: renderTimetableModule,
+        meals: renderMealsModule
+      }[activeView];
+      if (mainContent && renderModule) {
+        mountedView = renderModule(mainContent, {
+          profile,
+          services: options.services,
+          now: options.now,
+          viewData
+        });
+      }
     }
   };
 
@@ -87,10 +110,20 @@ export function mountApp(container, options = {}) {
     if (!control) return;
 
     const previousView = appState.getState().activeView;
+    const settingsTarget = control.dataset.settingsTarget;
     appState.setView(control.dataset.view);
 
     if (appState.getState().activeView !== previousView) {
-      container.querySelector?.('#main-content')?.focus();
+      const selector = {
+        school: '#settings-school-query',
+        class: 'select[name="settingsGrade"]',
+        allergy: 'input[name="settingsAllergies"]'
+      }[settingsTarget];
+      const focusTarget = selector ? container.querySelector?.(selector) : null;
+      focusTarget?.focus?.();
+      if (!focusTarget) {
+        container.querySelector?.('#main-content')?.focus();
+      }
     }
   });
 

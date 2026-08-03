@@ -231,3 +231,83 @@ test('dashboard integration keeps the settings route available', () => {
   assert.match(container.innerHTML, /data-settings-form/);
   assert.match(container.innerHTML, /data-view="settings"[^>]*aria-current="page"/);
 });
+
+test('schedule, timetable, and meals routes mount their interactive detail modules', async () => {
+  const listeners = new Map();
+  const main = {
+    innerHTML: '',
+    addEventListener() {},
+    removeEventListener() {},
+    querySelector() { return null; },
+    querySelectorAll() { return []; },
+    focus() {}
+  };
+  const support = { innerHTML: '', addEventListener() {}, removeEventListener() {} };
+  const container = {
+    innerHTML: '',
+    addEventListener(type, listener) { listeners.set(type, listener); },
+    querySelector(selector) {
+      if (selector === '#main-content') return main;
+      if (selector === '.support-panel') return support;
+      return null;
+    }
+  };
+  const services = {
+    fetchSchedule: async () => ({ status: 'no-data', rows: [] }),
+    fetchTimetable: async () => ({ status: 'no-data', rows: [] }),
+    fetchMeals: async () => ({ status: 'no-data', rows: [] })
+  };
+  mountApp(container, {
+    storage: createProfileStorage(),
+    services,
+    now: new Date(2026, 7, 3)
+  });
+
+  for (const view of ['schedule', 'timetable', 'meals']) {
+    listeners.get('click')({
+      target: {
+        closest(selector) {
+          return selector === '[data-view]' ? { dataset: { view } } : null;
+        }
+      }
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.match(main.innerHTML, new RegExp(`data-module="${view}"`));
+  }
+});
+
+test('a module settings action focuses the relevant class control after navigation', () => {
+  const listeners = new Map();
+  const main = {
+    innerHTML: '',
+    addEventListener() {},
+    removeEventListener() {},
+    querySelector() { return null; },
+    focus() { this.focused = true; }
+  };
+  const classControl = { focus() { this.focused = true; } };
+  const container = {
+    innerHTML: '',
+    addEventListener(type, listener) { listeners.set(type, listener); },
+    querySelector(selector) {
+      if (selector === '#main-content') return main;
+      if (selector === 'select[name="settingsGrade"]') return classControl;
+      return null;
+    }
+  };
+  mountApp(container, { storage: createProfileStorage() });
+
+  listeners.get('click')({
+    target: {
+      closest(selector) {
+        return selector === '[data-view]'
+          ? { dataset: { view: 'settings', settingsTarget: 'class' } }
+          : null;
+      }
+    }
+  });
+
+  assert.equal(classControl.focused, true);
+  assert.notEqual(main.focused, true);
+});
