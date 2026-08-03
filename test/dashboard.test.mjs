@@ -52,13 +52,16 @@ function successfulServices() {
 
 function createContainer() {
   const listeners = new Map();
+  const nodes = new Map();
   return {
     innerHTML: '',
     addEventListener(type, listener) { listeners.set(type, listener); },
     removeEventListener(type, listener) {
       if (listeners.get(type) === listener) listeners.delete(type);
     },
-    fire(type, event) { listeners.get(type)?.(event); }
+    fire(type, event) { listeners.get(type)?.(event); },
+    querySelector(selector) { return nodes.get(selector) ?? null; },
+    setNode(selector, node) { nodes.set(selector, node); }
   };
 }
 
@@ -100,6 +103,39 @@ test('student dashboard shows a vertical full timetable beside today meals', asy
   assert.match(container.innerHTML, /timetable-preview--vertical/);
   assert.match(container.innerHTML, /data-dashboard-section="upcoming"/);
   assert.match(container.innerHTML, /다가오는 일정/);
+});
+
+test('dashboard displays a live Korean date clock and clears its timer on destroy', async () => {
+  const container = createContainer();
+  const clockNode = { textContent: '', dateTime: '' };
+  container.setNode('[data-dashboard-clock]', clockNode);
+  let currentTime = new Date(2026, 7, 4, 12, 34, 56);
+  let tick;
+  let clearedTimer;
+  const view = renderDashboard(container, {
+    profile: profile('teacher'),
+    services: successfulServices(),
+    now: currentTime,
+    getCurrentTime: () => currentTime,
+    setInterval(callback) {
+      tick = callback;
+      return 'dashboard-clock';
+    },
+    clearInterval(timer) { clearedTimer = timer; }
+  });
+
+  await view.ready;
+
+  assert.match(container.innerHTML, /data-dashboard-clock/);
+  assert.doesNotMatch(container.innerHTML, /오늘의 학교생활/);
+  assert.match(container.innerHTML, /2026년 8월 4일 \(화\) · 오후 12:34:56/);
+  currentTime = new Date(2026, 7, 4, 12, 34, 57);
+  tick();
+  assert.equal(clockNode.textContent, '2026년 8월 4일 (화) · 오후 12:34:57');
+  assert.equal(clockNode.dateTime, '2026-08-04T12:34:57');
+
+  view.destroy();
+  assert.equal(clearedTimer, 'dashboard-clock');
 });
 
 test('dashboard card date controls move timetable and meals independently', async () => {

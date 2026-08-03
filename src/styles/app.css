@@ -179,15 +179,18 @@
   gap: 16px;
 }
 
-.content-heading p,
 .content-heading span,
+.dashboard-clock,
 .eyebrow {
   margin: 0;
 }
 
-.content-heading p {
+.dashboard-clock {
+  min-width: 0;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
 }
 
 .content-heading span {
@@ -1586,6 +1589,13 @@
 
   .content-heading {
     min-height: 32px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .dashboard-clock {
+    flex: 1 1 240px;
+    font-size: 13px;
   }
 
   .status-card {

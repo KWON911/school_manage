@@ -12,6 +12,8 @@ const ROLE_SECTIONS = {
   teacher: ['timetable', 'meals', 'upcoming']
 };
 
+const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
+
 export function getDashboardSections(role) {
   return [...(ROLE_SECTIONS[role] ?? ROLE_SECTIONS.student)];
 }
@@ -34,6 +36,28 @@ function dateParts(date) {
     month: `${year}${month}`,
     label: `${date.getMonth() + 1}월 ${date.getDate()}일`
   };
+}
+
+function clockDateTimeValue(date) {
+  const { key } = dateParts(date);
+  const hour = String(date.getHours()).padStart(2, '0');
+  const minute = String(date.getMinutes()).padStart(2, '0');
+  const second = String(date.getSeconds()).padStart(2, '0');
+  return `${key.slice(0, 4)}-${key.slice(4, 6)}-${key.slice(6)}T${hour}:${minute}:${second}`;
+}
+
+function dashboardClockLabel(date) {
+  const hour = date.getHours();
+  const period = hour < 12 ? '오전' : '오후';
+  const displayHour = hour % 12 || 12;
+  const minute = String(date.getMinutes()).padStart(2, '0');
+  const second = String(date.getSeconds()).padStart(2, '0');
+  return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 (${WEEKDAY_LABELS[date.getDay()]}) · ${period} ${displayHour}:${minute}:${second}`;
+}
+
+function dashboardTopMarkup(profile, currentTime) {
+  return `<div class="content-heading"><time class="dashboard-clock" data-dashboard-clock datetime="${clockDateTimeValue(currentTime)}">${dashboardClockLabel(currentTime)}</time><span>${escapeHtml(profile.school?.name)}</span></div>
+    <header class="dashboard-header"><h1 id="view-title">${greeting(profile.role)}</h1></header>`;
 }
 
 function monthEndKey(date) {
@@ -235,14 +259,13 @@ function greeting(role) {
   return { student: '안녕하세요, 학생님', parent: '안녕하세요, 보호자님', teacher: '안녕하세요, 선생님' }[role] ?? '안녕하세요';
 }
 
-export function renderDashboardLoadingMarkup(profile = {}) {
-  return `<div class="content-heading"><p>오늘의 학교생활</p><span>${escapeHtml(profile.school?.name)}</span></div>
-    <header class="dashboard-header"><h1 id="view-title">${greeting(profile.role)}</h1></header>
+export function renderDashboardLoadingMarkup(profile = {}, currentTime = new Date()) {
+  return `${dashboardTopMarkup(profile, currentTime)}
     <div class="dashboard-overview" aria-busy="true"><div class="dashboard-stack"><div class="dashboard-card dashboard-card--loading"></div><div class="dashboard-card dashboard-card--loading"></div></div><div class="dashboard-card dashboard-card--loading"></div></div>`;
 }
 
-function renderLoading(container, profile) {
-  container.innerHTML = renderDashboardLoadingMarkup(profile);
+function renderLoading(container, profile, currentTime) {
+  container.innerHTML = renderDashboardLoadingMarkup(profile, currentTime);
 }
 
 export function renderDashboard(container, context = {}) {
@@ -254,15 +277,28 @@ export function renderDashboard(container, context = {}) {
     fetchCalendarEvents: requestCalendarEvents,
     ...(context.services ?? {})
   };
-  const now = context.now instanceof Date ? context.now : new Date();
+  const getCurrentTime = typeof context.getCurrentTime === 'function' ? context.getCurrentTime : () => new Date();
+  const now = context.now instanceof Date ? context.now : getCurrentTime();
   const date = dateParts(now);
   let timetableDate = new Date(now);
   let mealsDate = new Date(now);
   const caches = context.viewData ?? {};
   let destroyed = false;
   let loadVersion = 0;
+  const scheduleClock = context.setInterval ?? (typeof window !== 'undefined' ? window.setInterval.bind(window) : null);
+  const clearClock = context.clearInterval ?? (typeof window !== 'undefined' ? window.clearInterval.bind(window) : null);
+  let clockTimer = null;
 
-  renderLoading(container, profile);
+  function updateClock() {
+    const currentTime = getCurrentTime();
+    const clock = container.querySelector?.('[data-dashboard-clock]');
+    if (!clock) return;
+    clock.textContent = dashboardClockLabel(currentTime);
+    clock.dateTime = clockDateTimeValue(currentTime);
+  }
+
+  renderLoading(container, profile, getCurrentTime());
+  if (scheduleClock) clockTimer = scheduleClock(updateClock, 1000);
 
   async function load() {
     const version = ++loadVersion;
@@ -291,8 +327,7 @@ export function renderDashboard(container, context = {}) {
       }
       return renderMealsCard(profile, meals, mealsDay, now);
     });
-    container.innerHTML = `<div class="content-heading"><p>오늘의 학교생활</p><span>${escapeHtml(profile.school?.name)}</span></div>
-      <header class="dashboard-header"><h1 id="view-title">${greeting(profile.role)}</h1></header>
+    container.innerHTML = `${dashboardTopMarkup(profile, getCurrentTime())}
       <div class="dashboard-overview"><div class="dashboard-stack">${sections.join('')}</div>${renderUpcomingCard(schedule, calendar, date)}</div>`;
   }
 
@@ -305,13 +340,13 @@ export function renderDashboard(container, context = {}) {
       if (dateButton.dataset.dashboardDate === 'meals') {
         mealsDate = moveDate(mealsDate, dateButton.dataset.direction);
       }
-      renderLoading(container, profile);
+      renderLoading(container, profile, getCurrentTime());
       void load();
       return;
     }
     if (!event.target.closest?.('[data-action="retry-dashboard"]')) return;
     Object.values(caches).forEach((cache) => cache?.clear?.());
-    renderLoading(container, profile);
+    renderLoading(container, profile, getCurrentTime());
     void load();
   }
 
@@ -321,6 +356,7 @@ export function renderDashboard(container, context = {}) {
     ready,
     destroy() {
       destroyed = true;
+      if (clockTimer !== null) clearClock?.(clockTimer);
       container.removeEventListener?.('click', onClick);
     }
   };
