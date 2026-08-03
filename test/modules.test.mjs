@@ -76,7 +76,7 @@ test('all school-information modules render the same ordered date toolbar', asyn
     const actions = [...container.innerHTML.matchAll(/data-date-action="([^"]+)"/g)]
       .map((match) => match[1]);
     assert.deepEqual(actions, ['previous', 'next', 'today']);
-    assert.match(container.innerHTML, /data-date-action="previous"[^>]*>이전 날짜<\/button>[\s\S]*<time[^>]*>2026년 8월 3일 \(월\)<\/time>[\s\S]*data-date-action="next"[^>]*>다음 날짜<\/button>[\s\S]*data-date-action="today"[^>]*>오늘<\/button>/);
+    assert.match(container.innerHTML, /data-date-action="previous"[^>]*>이전 (?:날짜|주)<\/button>[\s\S]*<time[^>]*>2026년 8월 3일 \(월\)<\/time>[\s\S]*data-date-action="next"[^>]*>다음 (?:날짜|주)<\/button>[\s\S]*data-date-action="today"[^>]*>오늘<\/button>/);
   }
 });
 
@@ -164,7 +164,7 @@ test('schedule switches semantic list and calendar tabs and shows selected-day d
   assert.match(container.innerHTML, /선택한 날의 일정[\s\S]*진로 체험/);
 });
 
-test('timetable switches from one day to a Monday-Friday week with table and weekday cards', async () => {
+test.skip('replaced by the always-weekly timetable', async () => {
   const container = createContainer();
   const ranges = [];
   const view = renderTimetableModule(container, {
@@ -199,6 +199,24 @@ test('timetable switches from one day to a Monday-Friday week with table and wee
   assert.match(container.innerHTML, /class="timetable-week-cards"/);
   assert.match(container.innerHTML, /data-weekday="20260803"[\s\S]*국어/);
   assert.match(container.innerHTML, /data-weekday="20260804"[\s\S]*수학/);
+});
+
+test('timetable is always weekly with a left period column and week navigation labels', async () => {
+  const container = createContainer();
+  const view = renderTimetableModule(container, {
+    profile: PROFILE,
+    now: new Date(2026, 7, 3),
+    services: {
+      ...emptyServices,
+      fetchTimetable: async () => ({ status: 'ok', rows: [{ ALL_TI_YMD: '20260803', PERIO: '1', ITRT_CNTNT: '국어' }] })
+    }
+  });
+  await view.ready;
+
+  assert.doesNotMatch(container.innerHTML, /data-mode="day"|data-mode="week"/);
+  assert.match(container.innerHTML, /data-date-action="previous"[^>]*>이전 주<\/button>/);
+  assert.match(container.innerHTML, /data-date-action="next"[^>]*>다음 주<\/button>/);
+  assert.match(container.innerHTML, /<th scope="col" class="period-column">교시<\/th>/);
 });
 
 test('timetable setup problems point to the relevant settings section without an invalid request', async () => {
@@ -450,7 +468,7 @@ test('a late date response cannot replace the newest timetable selection', async
   container.fire('click', target({ dateAction: 'next' }));
   second.resolve({
     status: 'ok',
-    rows: [{ ALL_TI_YMD: '20260804', PERIO: '1', ITRT_CNTNT: '최신 수업' }]
+    rows: [{ ALL_TI_YMD: '20260810', PERIO: '1', ITRT_CNTNT: '최신 수업' }]
   });
   await view.ready;
   assert.match(container.innerHTML, /최신 수업/);

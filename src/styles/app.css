@@ -1258,10 +1258,20 @@
   font-weight: 700;
 }
 
+.timetable-week-table .period-column { width: 64px; text-align: center; }
+.timetable-week-table th.is-current-day,
+.timetable-week-table td.is-current-day { background: rgba(203, 162, 88, 0.16); }
+
 .timetable-week-table td {
   min-width: 0;
-  padding: 0;
-  vertical-align: top;
+  padding: 14px 8px;
+  vertical-align: middle;
+  text-align: center;
+  border-radius: 9px;
+  background: rgba(212, 233, 226, 0.2);
+  color: var(--deep);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .timetable-week-table .period-list li {

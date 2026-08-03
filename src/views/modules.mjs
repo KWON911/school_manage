@@ -44,12 +44,13 @@ function fullDateLabel(key) {
   return date ? `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일` : '';
 }
 
-function dateToolbar(date) {
+function dateToolbar(date, kind) {
   const key = dateKey(date);
+  const isTimetable = kind === 'timetable';
   return `<div class="module-date-toolbar" aria-label="날짜 이동">
-    <button type="button" data-date-action="previous">이전 날짜</button>
+    <button type="button" data-date-action="previous">${isTimetable ? '이전 주' : '이전 날짜'}</button>
     <time datetime="${key.slice(0, 4)}-${key.slice(4, 6)}-${key.slice(6)}">${dateLabel(date)}</time>
-    <button type="button" data-date-action="next">다음 날짜</button>
+    <button type="button" data-date-action="next">${isTimetable ? '다음 주' : '다음 날짜'}</button>
     <button type="button" data-date-action="today">오늘</button>
   </div>`;
 }
@@ -187,32 +188,24 @@ function timetableState(result) {
   return `<div class="module-state" role="${role}"><p>${message}</p>${action}</div>`;
 }
 
-function renderTimetable(date, mode, result) {
-  const tabMarkup = tabs('timetable', mode, [
-    { id: 'day', text: '날짜별' },
-    { id: 'week', text: '주간' }
-  ]);
+function renderTimetable(date, result, now) {
   if (result.status !== 'ok') {
-    const otherMode = mode === 'day' ? 'week' : 'day';
-    return `${tabMarkup}<div role="tabpanel" id="timetable-${mode}-panel" aria-labelledby="timetable-${mode}-tab">${timetableState(result)}</div><div role="tabpanel" id="timetable-${otherMode}-panel" aria-labelledby="timetable-${otherMode}-tab" hidden></div>`;
-  }
-  if (mode === 'day') {
-    const rows = timetableRows(result.rows ?? [], dateKey(date));
-    return `${tabMarkup}<div role="tabpanel" id="timetable-day-panel" aria-labelledby="timetable-day-tab">${periodList(rows)}</div><div role="tabpanel" id="timetable-week-panel" aria-labelledby="timetable-week-tab" hidden></div>`;
+    return `<div class="timetable-panel">${timetableState(result)}</div>`;
   }
 
   const days = schoolWeek(date);
   const dayRows = days.map((day) => ({ day, rows: timetableRows(result.rows ?? [], dateKey(day)) }));
-  return `${tabMarkup}<div role="tabpanel" id="timetable-day-panel" aria-labelledby="timetable-day-tab" hidden></div><div role="tabpanel" id="timetable-week-panel" aria-labelledby="timetable-week-tab">
+  const periods = [...new Set(dayRows.flatMap(({ rows }) => rows.map((row) => String(row.PERIO))))].sort((a, b) => Number(a) - Number(b));
+  return `<div class="timetable-panel">
     <table class="timetable-week-table">
       <caption>${dateLabel(days[0])}부터 5일간 시간표</caption>
-      <thead><tr>${dayRows.map(({ day }) => `<th scope="col">${day.getMonth() + 1}/${day.getDate()} (${WEEKDAYS[day.getDay()]})</th>`).join('')}</tr></thead>
-      <tbody><tr>${dayRows.map(({ rows }) => `<td>${periodList(rows)}</td>`).join('')}</tr></tbody>
+      <thead><tr><th scope="col" class="period-column">교시</th>${dayRows.map(({ day }) => `<th scope="col" class="${dateKey(day) === dateKey(now) ? 'is-current-day' : ''}">${day.getMonth() + 1}/${day.getDate()} (${WEEKDAYS[day.getDay()]})</th>`).join('')}</tr></thead>
+      <tbody>${periods.map((period) => `<tr><th scope="row" class="period-column">${escapeHtml(period)}교시</th>${dayRows.map(({ day, rows }) => { const row = rows.find((item) => String(item.PERIO) === period); return `<td class="${dateKey(day) === dateKey(now) ? 'is-current-day' : ''}">${escapeHtml(row?.ITRT_CNTNT || '수업 정보 없음')}</td>`; }).join('')}</tr>`).join('')}</tbody>
     </table>
     <div class="timetable-week-cards" aria-label="요일별 시간표">
       ${dayRows.map(({ day, rows }) => `<section class="weekday-card" data-weekday="${dateKey(day)}"><h2>${day.getMonth() + 1}월 ${day.getDate()}일 (${WEEKDAYS[day.getDay()]})</h2>${periodList(rows)}</section>`).join('')}
     </div>
-  </div>`;
+  </div></div>`;
 }
 
 function mealDishes(row) {
@@ -279,7 +272,7 @@ function createModule(container, context, kind) {
     return value instanceof Date ? new Date(value) : new Date();
   };
   let selectedDate = readNow();
-  let mode = kind === 'schedule' ? 'list' : 'day';
+  let mode = kind === 'schedule' ? 'list' : kind === 'timetable' ? 'week' : 'day';
   let result = { status: 'no-data', rows: [] };
   let destroyed = false;
   let loadVersion = 0;
@@ -289,7 +282,7 @@ function createModule(container, context, kind) {
     const content = kind === 'schedule'
       ? renderSchedule(selectedDate, mode, result)
       : kind === 'timetable'
-        ? renderTimetable(selectedDate, mode, result)
+        ? renderTimetable(selectedDate, result, readNow())
         : renderMeals(selectedDate, mode, result, context.profile?.allergies ?? []);
     const titles = { schedule: '일정', timetable: '시간표', meals: '급식' };
     container.innerHTML = `<section class="module-view" data-module="${kind}">
@@ -297,7 +290,7 @@ function createModule(container, context, kind) {
         <div><p class="eyebrow">학교 정보</p><h1 id="view-title">${titles[kind]}</h1></div>
         <span>${escapeHtml(context.profile?.school?.name)}</span>
       </header>
-      ${dateToolbar(selectedDate)}
+      ${dateToolbar(selectedDate, kind)}
       ${content}
     </section>`;
   }
@@ -329,7 +322,7 @@ function createModule(container, context, kind) {
       if (!school?.kind) request = Promise.resolve({ status: 'missing-school', rows: [] });
       else if (!classSetting?.grade || !classSetting?.classNm) request = Promise.resolve({ status: 'missing-class', rows: [] });
       else {
-        const days = mode === 'week' ? schoolWeek(selectedDate) : [selectedDate];
+        const days = schoolWeek(selectedDate);
         request = services.fetchTimetable(school, classSetting, {
           from: dateKey(days[0]),
           to: dateKey(days.at(-1))
@@ -362,8 +355,9 @@ function createModule(container, context, kind) {
   function onClick(event) {
     const control = event.target.closest?.('[data-date-action]');
     if (control) {
-      if (control.dataset.dateAction === 'previous') selectedDate.setDate(selectedDate.getDate() - 1);
-      if (control.dataset.dateAction === 'next') selectedDate.setDate(selectedDate.getDate() + 1);
+      const offset = kind === 'timetable' ? 7 : 1;
+      if (control.dataset.dateAction === 'previous') selectedDate.setDate(selectedDate.getDate() - offset);
+      if (control.dataset.dateAction === 'next') selectedDate.setDate(selectedDate.getDate() + offset);
       if (control.dataset.dateAction === 'today') selectedDate = readNow();
       load({
         origin: control,
@@ -372,7 +366,7 @@ function createModule(container, context, kind) {
       return;
     }
     const modeControl = event.target.closest?.('[data-mode]');
-    const validModes = kind === 'schedule' ? ['list', 'calendar'] : kind === 'timetable' ? ['day', 'week'] : ['day', 'calendar'];
+    const validModes = kind === 'schedule' ? ['list', 'calendar'] : ['day', 'calendar'];
     if (modeControl && validModes.includes(modeControl.dataset.mode)) {
       activateMode(modeControl.dataset.mode, modeControl);
       return;
@@ -396,7 +390,7 @@ function createModule(container, context, kind) {
   function onKeyDown(event) {
     const tab = event.target.closest?.('[data-mode]');
     if (!tab || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-    const validModes = kind === 'schedule' ? ['list', 'calendar'] : kind === 'timetable' ? ['day', 'week'] : ['day', 'calendar'];
+    const validModes = kind === 'schedule' ? ['list', 'calendar'] : ['day', 'calendar'];
     const currentIndex = Math.max(0, validModes.indexOf(tab.dataset.mode));
     let nextIndex = currentIndex;
     if (event.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + validModes.length) % validModes.length;
