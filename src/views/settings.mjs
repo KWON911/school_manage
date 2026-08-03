@@ -1,4 +1,5 @@
 import { saveProfile } from '../lib/storage.mjs';
+import { getGradeOptions } from '../lib/school.mjs';
 import { searchSchools as requestSchoolSearch } from '../services/neis.mjs';
 import {
   createDraft,
@@ -107,14 +108,31 @@ export function renderSettingsMarkup(state = {}) {
 }
 
 function invalidErrors(draft) {
+  const grade = draft.classSetting?.grade;
+  const classNm = draft.classSetting?.classNm ?? '';
+  const hasValidClass = getGradeOptions(draft.school?.kind).includes(grade)
+    && /^[1-9]\d*$/.test(classNm);
   return {
     ...(!draft.role ? { role: '역할을 선택해 주세요.' } : {}),
     ...(!draft.school ? { school: '학교 검색 결과에서 학교를 선택해 주세요.' } : {}),
-    ...(!draft.classSetting?.grade || !/^[1-9]\d*$/.test(draft.classSetting?.classNm ?? '')
+    ...(!hasValidClass
       ? { classSetting: '학년을 선택하고 반은 1 이상의 정수로 입력해 주세요.' }
       : {}),
     profile: '필수 설정을 모두 확인해 주세요.'
   };
+}
+
+function settingsErrorSelector(errors, draft) {
+  if (errors.role) return 'input[name="settingsRole"]';
+  if (errors.school) return '#settings-school-query';
+  if (!getGradeOptions(draft.school?.kind).includes(draft.classSetting?.grade)) {
+    return 'select[name="settingsGrade"]';
+  }
+  return 'input[name="settingsClassNm"]';
+}
+
+function focusControl(container, selector) {
+  container.querySelector?.(selector)?.focus();
 }
 
 function emitUpdated(container, profile, schoolChanged) {
@@ -175,6 +193,7 @@ export function renderSettings(container, context = {}) {
         state.feedback = '';
         state.errors = {};
         render();
+        focusControl(container, 'select[name="settingsGrade"]');
       }
       return;
     }
@@ -195,6 +214,7 @@ export function renderSettings(container, context = {}) {
       state.feedback = '';
       state.errors = invalidErrors(state.draft);
       render();
+      focusControl(container, settingsErrorSelector(state.errors, state.draft));
       return;
     }
 
@@ -215,6 +235,7 @@ export function renderSettings(container, context = {}) {
       state.searchMessage = '학교명을 입력해 주세요.';
       state.results = [];
       render();
+      focusControl(container, '#settings-school-query');
       return;
     }
     state.searchStatus = 'loading';

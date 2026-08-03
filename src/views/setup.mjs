@@ -202,14 +202,30 @@ export function renderSetupMarkup(state = {}) {
 }
 
 function profileErrors(draft) {
+  const grade = draft.classSetting?.grade;
+  const classNm = draft.classSetting?.classNm ?? '';
+  const hasValidClass = getGradeOptions(draft.school?.kind).includes(grade) && isPositiveInteger(classNm);
   return {
     ...(!VALID_ROLES.has(draft.role) ? { role: '역할을 선택해 주세요.' } : {}),
     ...(!draft.school ? { school: '학교 검색 결과에서 학교를 선택해 주세요.' } : {}),
-    ...(!draft.classSetting?.grade || !isPositiveInteger(draft.classSetting?.classNm ?? '')
+    ...(!hasValidClass
       ? { classSetting: '학년을 선택하고 반은 1 이상의 정수로 입력해 주세요.' }
       : {}),
     profile: '필수 설정을 모두 확인해 주세요.'
   };
+}
+
+function setupErrorSelector(errors, draft) {
+  if (errors.role) return 'input[name="role"]';
+  if (errors.school) return '#setup-school-query';
+  if (!getGradeOptions(draft.school?.kind).includes(draft.classSetting?.grade)) {
+    return 'select[name="grade"]';
+  }
+  return 'input[name="classNm"]';
+}
+
+function focusControl(container, selector) {
+  container.querySelector?.(selector)?.focus();
 }
 
 function emitProfile(container, eventName, profile) {
@@ -219,6 +235,8 @@ function emitProfile(container, eventName, profile) {
 }
 
 export function renderSetup(container, context = {}) {
+  let destroyed = false;
+  let searchRequest = 0;
   const state = {
     draft: createDraft(context.profile),
     query: '',
@@ -264,6 +282,7 @@ export function renderSetup(container, context = {}) {
         state.draft = selectSchool(state.draft, school);
         state.errors = {};
         render();
+        focusControl(container, 'select[name="grade"]');
       }
       return;
     }
@@ -281,6 +300,7 @@ export function renderSetup(container, context = {}) {
     if (!profile) {
       state.errors = profileErrors(state.draft);
       render();
+      focusControl(container, setupErrorSelector(state.errors, state.draft));
       return;
     }
 
@@ -290,12 +310,14 @@ export function renderSetup(container, context = {}) {
   }
 
   async function search() {
+    const requestId = ++searchRequest;
     const query = state.query.trim();
     if (!query) {
       state.searchStatus = 'error';
       state.searchMessage = '학교명을 입력해 주세요.';
       state.results = [];
       render();
+      focusControl(container, '#setup-school-query');
       return;
     }
 
@@ -303,6 +325,7 @@ export function renderSetup(container, context = {}) {
     state.searchMessage = '';
     render();
     const result = await searchSchools(query);
+    if (destroyed || requestId !== searchRequest) return;
     state.results = result.rows ?? [];
     if (result.status === 'ok') {
       state.searchStatus = 'success';
@@ -325,6 +348,8 @@ export function renderSetup(container, context = {}) {
   return {
     getState: () => state,
     destroy() {
+      destroyed = true;
+      searchRequest += 1;
       container.removeEventListener?.('input', onInput);
       container.removeEventListener?.('change', onChange);
       container.removeEventListener?.('click', onClick);

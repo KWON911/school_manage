@@ -4,12 +4,14 @@ import {
   createProfileCandidate,
   renderGradeOptions,
   renderSchoolResults,
+  renderSetup,
   renderSetupMarkup,
   selectSchool
 } from '../src/views/setup.mjs';
 import {
   hasSchoolChanged,
   persistSettingsProfile,
+  renderSettings,
   renderSettingsMarkup
 } from '../src/views/settings.mjs';
 
@@ -28,6 +30,56 @@ const completeDraft = {
   classSetting: { grade: '2', classNm: '3' },
   allergies: ['1', '6']
 };
+
+function createDeferred() {
+  let resolve;
+  const promise = new Promise((settle) => { resolve = settle; });
+  return { promise, resolve };
+}
+
+function createInteractiveContainer() {
+  const listeners = new Map();
+  const selectorMarkers = {
+    '#setup-school-query': 'id="setup-school-query"',
+    '#settings-school-query': 'id="settings-school-query"',
+    'input[name="role"]': 'name="role"',
+    'select[name="grade"]': 'name="grade"',
+    'input[name="classNm"]': 'name="classNm"',
+    'input[name="settingsRole"]': 'name="settingsRole"',
+    'select[name="settingsGrade"]': 'name="settingsGrade"',
+    'input[name="settingsClassNm"]': 'name="settingsClassNm"'
+  };
+  let html = '';
+  let focusedSelector = null;
+
+  const container = {
+    get innerHTML() { return html; },
+    set innerHTML(value) { html = value; },
+    addEventListener(type, listener) {
+      const handlers = listeners.get(type) ?? [];
+      handlers.push(listener);
+      listeners.set(type, handlers);
+    },
+    removeEventListener(type, listener) {
+      listeners.set(type, (listeners.get(type) ?? []).filter((item) => item !== listener));
+    },
+    querySelector(selector) {
+      if (!html.includes(selectorMarkers[selector])) return null;
+      return {
+        focus() { focusedSelector = selector; }
+      };
+    }
+  };
+
+  return {
+    container,
+    fire(type, event) {
+      for (const listener of [...(listeners.get(type) ?? [])]) listener(event);
+    },
+    get focusedSelector() { return focusedSelector; },
+    clearFocus() { focusedSelector = null; }
+  };
+}
 
 test('creates a profile only for a supported role, school grade, and positive class', () => {
   assert.deepEqual(createProfileCandidate(completeDraft), completeDraft);
@@ -178,4 +230,103 @@ test('settings success feedback always uses the shared confirmation message', ()
   });
 
   assert.match(markup, /role="status">설정을 저장했어요\.<\/p>/);
+});
+
+test('a destroyed setup ignores a late school search response instead of replacing the dashboard', async () => {
+  const dom = createInteractiveContainer();
+  const request = createDeferred();
+  const view = renderSetup(dom.container, {
+    searchSchools() { return request.promise; }
+  });
+
+  dom.fire('input', { target: { name: 'schoolQuery', value: '가람중학교' } });
+  dom.fire('click', {
+    target: {
+      closest(selector) {
+        return selector === '[data-action="search-school"]' ? {} : null;
+      }
+    }
+  });
+  view.destroy();
+  dom.container.innerHTML = '<div class="app-shell">dashboard</div>';
+
+  request.resolve({ status: 'ok', rows: [middleSchool] });
+  await request.promise;
+  await Promise.resolve();
+
+  assert.equal(dom.container.innerHTML, '<div class="app-shell">dashboard</div>');
+});
+
+test('setup rerenders focus the next school control or first invalid field', () => {
+  const selectionDom = createInteractiveContainer();
+  const selectionView = renderSetup(selectionDom.container);
+  selectionView.getState().results = [middleSchool];
+
+  selectionDom.fire('click', {
+    target: {
+      closest(selector) {
+        return selector === '[data-school-index]'
+          ? { dataset: { schoolIndex: '0' } }
+          : null;
+      }
+    }
+  });
+  assert.equal(selectionDom.focusedSelector, 'select[name="grade"]');
+
+  const validationDom = createInteractiveContainer();
+  renderSetup(validationDom.container);
+  validationDom.fire('click', {
+    target: {
+      closest(selector) {
+        return selector === '[data-action="search-school"]' ? {} : null;
+      }
+    }
+  });
+  assert.equal(validationDom.focusedSelector, '#setup-school-query');
+
+  validationDom.clearFocus();
+  validationDom.fire('submit', {
+    target: { matches: (selector) => selector === '[data-setup-form]' },
+    submitter: { dataset: { action: 'complete-profile' } },
+    preventDefault() {}
+  });
+  assert.equal(validationDom.focusedSelector, 'input[name="role"]');
+});
+
+test('settings rerenders focus the cleared grade control and first invalid field', () => {
+  const dom = createInteractiveContainer();
+  const view = renderSettings(dom.container, { profile: completeDraft });
+  dom.fire('click', {
+    target: {
+      closest(selector) {
+        return selector === '[data-action="settings-search-school"]' ? {} : null;
+      }
+    }
+  });
+  assert.equal(dom.focusedSelector, '#settings-school-query');
+
+  dom.clearFocus();
+  view.getState().results = [{
+    ...middleSchool,
+    name: '한빛중학교',
+    SD_SCHUL_CODE: '7010009'
+  }];
+
+  dom.fire('click', {
+    target: {
+      closest(selector) {
+        return selector === '[data-school-index]'
+          ? { dataset: { schoolIndex: '0' } }
+          : null;
+      }
+    }
+  });
+  assert.equal(dom.focusedSelector, 'select[name="settingsGrade"]');
+
+  dom.clearFocus();
+  dom.fire('submit', {
+    target: { matches: (selector) => selector === '[data-settings-form]' },
+    preventDefault() {}
+  });
+  assert.equal(dom.focusedSelector, 'select[name="settingsGrade"]');
 });
