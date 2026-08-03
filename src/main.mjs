@@ -1,6 +1,7 @@
 import { renderAppShell } from './components.mjs';
 import { isProfileComplete, readProfile } from './lib/storage.mjs';
 import { createAppState } from './state/app-state.mjs';
+import { renderDashboard, renderDashboardLoadingMarkup } from './views/dashboard.mjs';
 import { renderSetup } from './views/setup.mjs';
 import { renderSettings, renderSettingsMarkup } from './views/settings.mjs';
 
@@ -27,7 +28,9 @@ export function mountApp(container, options = {}) {
 
     const activeView = state.activeView;
     const shellOptions = { schoolName: profile.school?.name };
-    if (activeView === 'settings') {
+    if (activeView === 'home') {
+      shellOptions.mainContent = renderDashboardLoadingMarkup(profile);
+    } else if (activeView === 'settings') {
       shellOptions.mainContent = renderSettingsMarkup({
         draft: profile,
         feedback: settingsFeedback,
@@ -36,7 +39,18 @@ export function mountApp(container, options = {}) {
     }
     renderAppShell(container, activeView, shellOptions);
 
-    if (activeView === 'settings') {
+    if (activeView === 'home') {
+      const mainContent = container.querySelector?.('#main-content');
+      if (mainContent) {
+        mountedView = renderDashboard(mainContent, {
+          profile,
+          services: options.services,
+          now: options.now,
+          viewData,
+          supportContainer: container.querySelector?.('.support-panel')
+        });
+      }
+    } else if (activeView === 'settings') {
       const mainContent = container.querySelector?.('#main-content');
       if (mainContent) {
         mountedView = renderSettings(mainContent, {

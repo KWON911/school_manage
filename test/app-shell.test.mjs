@@ -207,5 +207,27 @@ test('a complete saved profile opens the dashboard shell', () => {
   mountApp(container, { storage: createProfileStorage() });
 
   assert.match(container.innerHTML, /class="app-shell"/);
+  assert.match(container.innerHTML, /class="dashboard-cards"/);
   assert.doesNotMatch(container.innerHTML, /data-setup-form/);
+});
+
+test('dashboard integration keeps the settings route available', () => {
+  const listeners = new Map();
+  const container = {
+    innerHTML: '',
+    addEventListener(type, listener) { listeners.set(type, listener); },
+    querySelector() { return null; }
+  };
+
+  mountApp(container, { storage: createProfileStorage() });
+  listeners.get('click')({
+    target: {
+      closest(selector) {
+        return selector === '[data-view]' ? { dataset: { view: 'settings' } } : null;
+      }
+    }
+  });
+
+  assert.match(container.innerHTML, /data-settings-form/);
+  assert.match(container.innerHTML, /data-view="settings"[^>]*aria-current="page"/);
 });

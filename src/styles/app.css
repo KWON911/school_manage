@@ -296,6 +296,266 @@
   background: rgba(212, 233, 226, 0.48);
 }
 
+.dashboard-header {
+  padding: 6px 2px 2px;
+}
+
+.dashboard-header h1 {
+  margin: 5px 0 0;
+  color: var(--deep);
+  font-size: clamp(28px, 3vw, 38px);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.22;
+}
+
+.dashboard-cards {
+  display: grid;
+  gap: 18px;
+}
+
+.dashboard-card {
+  position: relative;
+  display: flex;
+  min-height: 290px;
+  padding: 28px;
+  overflow: hidden;
+  border: 1px solid rgba(30, 57, 50, 0.07);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  flex-direction: column;
+}
+
+.dashboard-card::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--mint);
+  content: '';
+}
+
+.dashboard-card--timetable::before {
+  background: var(--action);
+}
+
+.dashboard-card--meals::before {
+  background: var(--notice);
+}
+
+.dashboard-card--schedule::before {
+  background: var(--deep);
+}
+
+.dashboard-card__heading h2 {
+  margin: 4px 0 0;
+  color: var(--deep);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+}
+
+.dashboard-card__eyebrow {
+  margin: 0;
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.next-class {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  margin-top: 22px;
+  padding: 18px 20px;
+  align-items: center;
+  border-radius: 10px;
+  color: var(--surface);
+  background: var(--deep);
+}
+
+.next-class span {
+  padding-right: 14px;
+  border-right: 1px solid rgba(255, 255, 255, 0.22);
+  color: var(--mint);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.next-class strong {
+  font-size: 21px;
+  font-weight: 600;
+}
+
+.timetable-preview,
+.meal-preview,
+.schedule-preview,
+.upcoming-events ol {
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timetable-preview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.timetable-preview li {
+  display: grid;
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(212, 233, 226, 0.2);
+}
+
+.timetable-preview span,
+.upcoming-events time {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.timetable-preview strong {
+  overflow: hidden;
+  color: var(--deep);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meal-preview,
+.schedule-preview {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.meal-preview li,
+.schedule-preview li {
+  padding: 7px 11px;
+  border-radius: 999px;
+  color: var(--deep);
+  background: rgba(203, 162, 88, 0.16);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.schedule-preview li {
+  border-radius: 8px;
+  background: var(--mint);
+}
+
+.allergy-match,
+.allergy-note {
+  margin: 14px 0 0;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.allergy-match {
+  width: fit-content;
+  padding: 7px 10px;
+  border-left: 3px solid var(--notice);
+  color: var(--deep);
+  background: rgba(203, 162, 88, 0.12);
+  font-weight: 600;
+}
+
+.allergy-note {
+  color: var(--text-muted);
+}
+
+.dashboard-state {
+  display: grid;
+  min-height: 104px;
+  margin-top: 22px;
+  padding: 20px;
+  place-items: center start;
+  border-radius: 10px;
+  color: var(--text-muted);
+  background: rgba(30, 57, 50, 0.035);
+  font-size: 14px;
+}
+
+.dashboard-state p {
+  margin: 0;
+}
+
+.dashboard-card__action {
+  width: fit-content;
+  min-height: 40px;
+  margin-top: auto;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  color: var(--action);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dashboard-card__action:hover {
+  color: var(--deep);
+}
+
+.dashboard-card--loading {
+  min-height: 290px;
+  background: linear-gradient(105deg, var(--surface) 25%, rgba(212, 233, 226, 0.55) 42%, var(--surface) 58%);
+  background-size: 220% 100%;
+  animation: dashboard-loading 1.5s ease-in-out infinite;
+}
+
+@keyframes dashboard-loading {
+  to { background-position-x: -220%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-card--loading {
+    animation: none;
+  }
+}
+
+.upcoming-events ol {
+  display: grid;
+  gap: 4px;
+  margin-top: 26px;
+}
+
+.upcoming-events li {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px 0;
+  align-items: baseline;
+  border-bottom: 1px solid var(--line);
+}
+
+.upcoming-events li:first-child {
+  border-top: 1px solid var(--line);
+}
+
+.upcoming-events strong {
+  color: var(--deep);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.upcoming-events .dashboard-state {
+  min-height: 120px;
+  margin-top: 24px;
+}
+
+.upcoming-events .dashboard-card__action {
+  margin-top: 24px;
+}
+
 .setup-page {
   display: grid;
   min-height: 100vh;
@@ -813,6 +1073,31 @@
 
   .status-card__note {
     margin-top: 36px;
+  }
+
+  .dashboard-header {
+    padding: 2px 0 0;
+  }
+
+  .dashboard-header h1 {
+    font-size: 28px;
+  }
+
+  .dashboard-cards {
+    gap: 14px;
+  }
+
+  .dashboard-card {
+    min-height: 270px;
+    padding: 24px 22px;
+  }
+
+  .dashboard-card__heading h2 {
+    font-size: 21px;
+  }
+
+  .timetable-preview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .support-panel {
