@@ -54,8 +54,7 @@ export function mountApp(container, options = {}) {
           profile,
           services: options.services,
           now: options.now,
-          viewData,
-          supportContainer: container.querySelector?.('.support-panel')
+          viewData
         });
       }
     } else if (activeView === 'settings') {

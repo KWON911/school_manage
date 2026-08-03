@@ -112,18 +112,6 @@ export function renderAppShell(container, activeView = 'home', options = {}) {
           ${mainContent}
         </main>
 
-        <aside class="support-panel" aria-labelledby="support-title">
-          <div class="support-panel__header">
-            <p class="eyebrow">한 눈에 보기</p>
-            <h2 id="support-title">다가오는 학교생활</h2>
-          </div>
-          <div class="support-placeholder">
-            <span class="support-placeholder__line"></span>
-            <span class="support-placeholder__line"></span>
-            <span class="support-placeholder__line"></span>
-          </div>
-          <p>학교 설정 후 가까운 일정과 필요한 안내가 이곳에 표시됩니다.</p>
-        </aside>
       </div>
 
       <nav class="bottom-navigation" aria-label="모바일 주요 메뉴">${navigation}</nav>

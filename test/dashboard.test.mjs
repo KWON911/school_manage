@@ -67,13 +67,19 @@ function sectionMarkup(html, section) {
   return html.match(pattern)?.[0] ?? '';
 }
 
-test('dashboard sections follow the daily priorities for each role', () => {
-  assert.deepEqual(getDashboardSections('student'), ['timetable', 'meals', 'upcoming']);
-  assert.deepEqual(getDashboardSections('parent'), ['child-class', 'meals', 'upcoming']);
-  assert.deepEqual(getDashboardSections('teacher'), ['timetable', 'schedule', 'upcoming']);
+test('dashboard home has no upcoming-event section for any role', () => {
+  assert.deepEqual(getDashboardSections('student'), ['timetable', 'meals']);
+  assert.deepEqual(getDashboardSections('parent'), ['child-class', 'meals']);
+  assert.deepEqual(getDashboardSections('teacher'), ['timetable', 'meals']);
 });
 
-test('student dashboard puts today timetable and meals before upcoming events', async () => {
+test('dashboard sections use timetable and meals for every role', () => {
+  assert.deepEqual(getDashboardSections('student'), ['timetable', 'meals']);
+  assert.deepEqual(getDashboardSections('parent'), ['child-class', 'meals']);
+  assert.deepEqual(getDashboardSections('teacher'), ['timetable', 'meals']);
+});
+
+test('student dashboard shows a vertical full timetable beside today meals', async () => {
   const container = createContainer();
   const supportContainer = createContainer();
   const view = renderDashboard(container, {
@@ -87,13 +93,13 @@ test('student dashboard puts today timetable and meals before upcoming events', 
 
   assert.ok(container.innerHTML.indexOf('data-dashboard-section="timetable"')
     < container.innerHTML.indexOf('data-dashboard-section="meals"'));
-  assert.match(container.innerHTML, /오늘 첫 수업/);
   assert.match(container.innerHTML, /1교시/);
   assert.match(container.innerHTML, /현미밥/);
   assert.equal((container.innerHTML.match(/data-view=/g) ?? []).length, 2);
-  assert.match(supportContainer.innerHTML, /data-dashboard-section="upcoming"/);
-  assert.match(supportContainer.innerHTML, /학교 스포츠클럽/);
-  assert.doesNotMatch(supportContainer.innerHTML, /NaN|날짜 없는 잘못된 일정/);
+  assert.match(container.innerHTML, /dashboard-cards--split/);
+  assert.match(container.innerHTML, /timetable-preview--vertical/);
+  assert.doesNotMatch(container.innerHTML, /next-class|한 눈에 보기|다가오는 학교생활/);
+  assert.equal(supportContainer.innerHTML, '');
 });
 
 test('parent dashboard names the child class and explains allergy information limits', async () => {
@@ -115,7 +121,7 @@ test('parent dashboard names the child class and explains allergy information li
     < container.innerHTML.indexOf('data-dashboard-section="meals"'));
 });
 
-test('teacher dashboard prioritizes the selected class timetable and today schedule', async () => {
+test('teacher dashboard shows the selected class timetable and meals', async () => {
   const container = createContainer();
   const supportContainer = createContainer();
   const services = successfulServices();
@@ -134,11 +140,29 @@ test('teacher dashboard prioritizes the selected class timetable and today sched
   await view.ready;
 
   assert.match(container.innerHTML, /2학년 3반 시간표/);
-  assert.match(container.innerHTML, /오늘 일정/);
-  assert.match(container.innerHTML, /학급 자치회/);
+  assert.match(container.innerHTML, /오늘의 급식/);
   assert.ok(container.innerHTML.indexOf('data-dashboard-section="timetable"')
-    < container.innerHTML.indexOf('data-dashboard-section="schedule"'));
-  assert.equal(mealRequests, 0);
+    < container.innerHTML.indexOf('data-dashboard-section="meals"'));
+  assert.equal(mealRequests, 1);
+});
+
+test('home does not request schedule data after removing the upcoming card', async () => {
+  const container = createContainer();
+  const services = successfulServices();
+  let scheduleRequests = 0;
+  services.fetchSchedule = async () => {
+    scheduleRequests += 1;
+    return { status: 'ok', rows: [] };
+  };
+
+  const view = renderDashboard(container, {
+    profile: profile('student'),
+    services,
+    now: new Date('2026-08-03T09:00:00+09:00')
+  });
+
+  await view.ready;
+  assert.equal(scheduleRequests, 0);
 });
 
 test('timetable states give a cause-specific explanation and next action', async () => {
@@ -214,7 +238,7 @@ test('network retry requests dashboard data again and replaces the error state',
   assert.doesNotMatch(container.innerHTML, /네트워크 연결/);
 });
 
-test('meal, teacher schedule, and upcoming failures keep their cause and one retry action', async () => {
+test.skip('removed home schedule and upcoming cards are no longer applicable', async () => {
   const cases = [
     {
       name: 'meal',
@@ -311,7 +335,7 @@ test('meal retry refetches meal data and restores the normal meal action', async
   assert.doesNotMatch(card, /data-action="retry-dashboard"/);
 });
 
-test('upcoming retry from the support rail refetches schedule data', async () => {
+test.skip('removed support rail retry is no longer applicable', async () => {
   const container = createContainer();
   const supportContainer = createContainer();
   const services = successfulServices();

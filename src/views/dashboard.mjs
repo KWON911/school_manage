@@ -1,13 +1,12 @@
 import {
   fetchMeals as requestMeals,
-  fetchSchedule as requestSchedule,
   fetchTimetable as requestTimetable
 } from '../services/neis.mjs';
 
 const ROLE_SECTIONS = {
-  student: ['timetable', 'meals', 'upcoming'],
-  parent: ['child-class', 'meals', 'upcoming'],
-  teacher: ['timetable', 'schedule', 'upcoming']
+  student: ['timetable', 'meals'],
+  parent: ['child-class', 'meals'],
+  teacher: ['timetable', 'meals']
 };
 
 export function getDashboardSections(role) {
@@ -72,14 +71,6 @@ function failureMessage(status, resource) {
       'network-error': '네트워크 연결로 급식 정보를 불러오지 못했어요.',
       'server-error': '학교 정보 시스템 응답 문제로 급식 정보를 불러오지 못했어요.'
     },
-    schedule: {
-      'network-error': '네트워크 연결로 오늘 일정을 불러오지 못했어요.',
-      'server-error': '학교 정보 시스템 응답 문제로 오늘 일정을 불러오지 못했어요.'
-    },
-    upcoming: {
-      'network-error': '네트워크 연결로 다가오는 일정을 불러오지 못했어요.',
-      'server-error': '학교 정보 시스템 응답 문제로 다가오는 일정을 불러오지 못했어요.'
-    }
   };
   return messages[resource]?.[status] ?? null;
 }
@@ -131,17 +122,12 @@ function renderTimetableCard(section, profile, result, date) {
 
   const rows = timetableRows(result, date.key);
   if (rows.length === 0) return renderTimetableCard(section, profile, { status: 'no-data' }, date);
-  const next = rows[0];
   return `<article class="dashboard-card dashboard-card--timetable" data-dashboard-section="${section}">
     <div class="dashboard-card__heading">
-      <p class="dashboard-card__eyebrow">${isParent ? '자녀의 오늘' : '오늘 첫 수업'}</p>
+      <p class="dashboard-card__eyebrow">${isParent ? '자녀의 오늘' : '오늘 시간표'}</p>
       <h2>${title}</h2>
     </div>
-    <div class="next-class">
-      <span>${escapeHtml(next.PERIO)}교시</span>
-      <strong>${escapeHtml(next.ITRT_CNTNT || '수업 정보 없음')}</strong>
-    </div>
-    <ol class="timetable-preview" aria-label="오늘 시간표">
+    <ol class="timetable-preview timetable-preview--vertical" aria-label="오늘 시간표">
       ${rows.map((row) => `<li><span>${escapeHtml(row.PERIO)}교시</span><strong>${escapeHtml(row.ITRT_CNTNT || '수업 정보 없음')}</strong></li>`).join('')}
     </ol>
     ${action('timetable', '시간표 전체 보기')}
@@ -179,79 +165,34 @@ function renderMealsCard(profile, result, date) {
   </article>`;
 }
 
-function todayScheduleRows(result, dateKey) {
-  return (result.rows ?? []).filter((row) => row.AA_YMD === dateKey);
-}
-
-function renderScheduleCard(result, date) {
-  const rows = result.status === 'ok' ? todayScheduleRows(result, date.key) : [];
-  const failure = failureState(result.status, 'schedule');
-  return `<article class="dashboard-card dashboard-card--schedule" data-dashboard-section="schedule">
-    <div class="dashboard-card__heading">
-      <p class="dashboard-card__eyebrow">교사의 오늘</p>
-      <h2>오늘 일정</h2>
-    </div>
-    ${failure ?? (rows.length > 0
-      ? `<ul class="schedule-preview">${rows.map((row) => `<li>${escapeHtml(row.EVENT_NM || '학교 일정')}</li>`).join('')}</ul>`
-      : '<div class="dashboard-state" role="status"><p>오늘 등록된 학교 일정이 없어요.</p></div>')}
-    ${failure ? retryAction('schedule') : action('schedule', '일정 전체 보기')}
-  </article>`;
-}
-
-function renderUpcoming(result, date) {
-  const failure = failureState(result.status, 'upcoming');
-  const rows = result.status === 'ok'
-    ? (result.rows ?? [])
-      .filter((row) => /^\d{8}$/.test(row.AA_YMD) && row.AA_YMD >= date.key)
-      .sort((a, b) => String(a.AA_YMD).localeCompare(String(b.AA_YMD)))
-      .slice(0, 3)
-    : [];
-  return `<div class="support-panel__header">
-    <p class="eyebrow">한 눈에 보기</p>
-    <h2 id="support-title">다가오는 학교생활</h2>
-  </div>
-  <section class="upcoming-events" data-dashboard-section="upcoming" aria-labelledby="support-title">
-    ${failure ?? (rows.length > 0
-      ? `<ol>${rows.map((row) => `<li><time>${escapeHtml(row.AA_YMD === date.key ? '오늘' : `${Number(String(row.AA_YMD).slice(4, 6))}월 ${Number(String(row.AA_YMD).slice(6, 8))}일`)}</time><strong>${escapeHtml(row.EVENT_NM || '학교 일정')}</strong></li>`).join('')}</ol>`
-      : '<p class="dashboard-state">다가오는 일정이 아직 없어요.</p>')}
-    ${failure ? retryAction('schedule') : action('schedule', '일정 전체 보기')}
-  </section>`;
-}
-
 export function renderDashboardLoadingMarkup(profile = {}) {
   return `<div class="content-heading"><p>오늘의 학교생활</p><span>${escapeHtml(profile.school?.name)}</span></div>
     <header class="dashboard-header"><p class="eyebrow">한눈에 준비하는 하루</p><h1 id="view-title">오늘 필요한 것부터 볼까요?</h1></header>
     <div class="dashboard-cards" aria-busy="true"><div class="dashboard-card dashboard-card--loading"></div><div class="dashboard-card dashboard-card--loading"></div></div>`;
 }
 
-function renderLoading(container, supportContainer, profile) {
+function renderLoading(container, profile) {
   container.innerHTML = renderDashboardLoadingMarkup(profile);
-  if (supportContainer) {
-    supportContainer.innerHTML = '<div class="support-panel__header"><p class="eyebrow">한 눈에 보기</p><h2 id="support-title">다가오는 학교생활</h2></div><div class="support-placeholder" aria-busy="true"><span class="support-placeholder__line"></span><span class="support-placeholder__line"></span></div>';
-  }
 }
 
 export function renderDashboard(container, context = {}) {
   const profile = context.profile ?? {};
   const services = context.services ?? {
     fetchTimetable: requestTimetable,
-    fetchMeals: requestMeals,
-    fetchSchedule: requestSchedule
+    fetchMeals: requestMeals
   };
   const now = context.now instanceof Date ? context.now : new Date();
   const date = dateParts(now);
   const caches = context.viewData ?? {};
-  const supportContainer = context.supportContainer;
   let destroyed = false;
 
-  renderLoading(container, supportContainer, profile);
+  renderLoading(container, profile);
 
   async function load() {
     const timetableKey = cacheKey(profile, date.key);
     const mealKey = cacheKey(profile, date.month);
-    const scheduleKey = cacheKey(profile, date.month);
     const needsMeals = getDashboardSections(profile.role).includes('meals');
-    const [timetable, meals, schedule] = await Promise.all([
+    const [timetable, meals] = await Promise.all([
       cachedRequest(caches.timetable, timetableKey, () => services.fetchTimetable(
         profile.school,
         profile.classSetting,
@@ -259,8 +200,7 @@ export function renderDashboard(container, context = {}) {
       )),
       needsMeals
         ? cachedRequest(caches.meals, mealKey, () => services.fetchMeals(profile.school, date.month))
-        : Promise.resolve({ status: 'no-data', rows: [] }),
-      cachedRequest(caches.schedule, scheduleKey, () => services.fetchSchedule(profile.school, date.month))
+        : Promise.resolve({ status: 'no-data', rows: [] })
     ]);
     if (destroyed) return;
 
@@ -268,31 +208,27 @@ export function renderDashboard(container, context = {}) {
       if (section === 'timetable' || section === 'child-class') {
         return renderTimetableCard(section, profile, timetable, date);
       }
-      if (section === 'meals') return renderMealsCard(profile, meals, date);
-      return renderScheduleCard(schedule, date);
+      return renderMealsCard(profile, meals, date);
     });
     container.innerHTML = `<div class="content-heading"><p>오늘의 학교생활</p><span>${escapeHtml(profile.school?.name)}</span></div>
       <header class="dashboard-header"><p class="eyebrow">${date.label}</p><h1 id="view-title">오늘 필요한 것부터 볼까요?</h1></header>
-      <div class="dashboard-cards">${sections.join('')}</div>`;
-    if (supportContainer) supportContainer.innerHTML = renderUpcoming(schedule, date);
+      <div class="dashboard-cards dashboard-cards--split">${sections.join('')}</div>`;
   }
 
   function onClick(event) {
     if (!event.target.closest?.('[data-action="retry-dashboard"]')) return;
     Object.values(caches).forEach((cache) => cache?.clear?.());
-    renderLoading(container, supportContainer, profile);
+    renderLoading(container, profile);
     void load();
   }
 
   container.addEventListener?.('click', onClick);
-  if (supportContainer !== container) supportContainer?.addEventListener?.('click', onClick);
   const ready = load();
   return {
     ready,
     destroy() {
       destroyed = true;
       container.removeEventListener?.('click', onClick);
-      if (supportContainer !== container) supportContainer?.removeEventListener?.('click', onClick);
     }
   };
 }

@@ -143,13 +143,13 @@ test('status messages escape content supplied by state', () => {
   assert.match(message, /준비 중 &amp; 안전/);
 });
 
-test('app shell renders semantic content and supporting regions', () => {
+test('app shell renders semantic content without the supporting sidebar', () => {
   const container = { innerHTML: '' };
 
   renderAppShell(container, 'schedule');
 
   assert.match(container.innerHTML, /<main[^>]*id="main-content"/);
-  assert.match(container.innerHTML, /<aside class="support-panel"/);
+  assert.doesNotMatch(container.innerHTML, /<aside class="support-panel"/);
   assert.match(container.innerHTML, /data-view="schedule"[^>]*aria-current="page"/);
 });
 

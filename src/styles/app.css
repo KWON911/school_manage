@@ -36,7 +36,7 @@
 
 .app-shell {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr) 320px;
+  grid-template-columns: 220px minmax(0, 1fr);
   gap: 24px;
   width: min(calc(100% - 96px), var(--content-max));
   min-height: 100vh;
@@ -314,6 +314,10 @@
   gap: 18px;
 }
 
+.dashboard-cards--split {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .dashboard-card {
   position: relative;
   display: flex;
@@ -364,31 +368,6 @@
   letter-spacing: 0.04em;
 }
 
-.next-class {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 14px;
-  margin-top: 22px;
-  padding: 18px 20px;
-  align-items: center;
-  border-radius: 10px;
-  color: var(--surface);
-  background: var(--deep);
-}
-
-.next-class span {
-  padding-right: 14px;
-  border-right: 1px solid rgba(255, 255, 255, 0.22);
-  color: var(--mint);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.next-class strong {
-  font-size: 21px;
-  font-weight: 600;
-}
-
 .timetable-preview,
 .meal-preview,
 .schedule-preview,
@@ -402,6 +381,16 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 7px;
+}
+
+.timetable-preview--vertical {
+  grid-template-columns: 1fr;
+}
+
+.timetable-preview--vertical li {
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
 }
 
 .timetable-preview li {
@@ -1381,7 +1370,7 @@
   }
 
   .app-shell {
-    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.65fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: 20px;
     width: min(calc(100% - 48px), var(--content-max));
     min-height: auto;
@@ -1499,6 +1488,10 @@
     gap: 14px;
   }
 
+  .dashboard-cards--split {
+    grid-template-columns: 1fr;
+  }
+
   .dashboard-card {
     min-height: 270px;
     padding: 24px 22px;
@@ -1508,9 +1501,7 @@
     font-size: 21px;
   }
 
-  .timetable-preview {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  .timetable-preview--vertical { grid-template-columns: 1fr; }
 
   .support-panel {
     position: static;
