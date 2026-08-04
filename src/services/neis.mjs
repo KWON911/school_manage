@@ -164,3 +164,7 @@ export function mealMatchesAllergies(row, allergies = []) {
     .map(String)
     .filter((code, index, selected) => mealCodes.has(code) && selected.indexOf(code) === index);
 }
+
+export function dishMatchesAllergies(dish, allergies = []) {
+  return mealMatchesAllergies({ DDISH_NM: dish }, allergies);
+}

@@ -1,7 +1,9 @@
 import {
   fetchMeals as requestMeals,
   fetchSchedule as requestSchedule,
-  fetchTimetable as requestTimetable
+  fetchTimetable as requestTimetable,
+  dishMatchesAllergies,
+  mealMatchesAllergies
 } from '../services/neis.mjs';
 import { fetchCalendarEvents as requestCalendarEvents } from '../services/google-calendar.mjs';
 import { getPeriodStatus } from '../lib/period-times.mjs';
@@ -206,15 +208,19 @@ function mealItems(row) {
     .filter(Boolean);
 }
 
-function matchingAllergies(row, allergies) {
-  const notation = String(row?.DDISH_NM ?? '');
-  return allergies.filter((code) => new RegExp(`(^|[.(,\\s])${String(code).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[.),\\s])`).test(notation));
+function mealItemMarkup(item, allergies) {
+  const matched = dishMatchesAllergies(item, allergies);
+  if (matched.length === 0) return `<li class="meal-item">${escapeHtml(item)}</li>`;
+  return `<li class="meal-item meal-item--allergy">
+    <span>${escapeHtml(item)}</span>
+    <span class="meal-item__warning"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3 2.5 20h19z"/><path d="M12 9v5m0 3h.01"/></svg><span>\uC54C\uB808\uB974\uAE30 ${matched.map(escapeHtml).join(', ')}\uBC88 \uD3EC\uD568</span></span>
+  </li>`;
 }
 
 function renderMealsCard(profile, result, date, now) {
   const row = (result.rows ?? []).find((item) => item.MLSV_YMD === date.key);
   const items = result.status === 'ok' ? mealItems(row) : [];
-  const matched = matchingAllergies(row, profile.allergies ?? []);
+  const matched = mealMatchesAllergies(row, profile.allergies ?? []);
   const failure = failureState(result.status, 'meals');
   return `<article class="dashboard-card dashboard-card--meals" data-dashboard-section="meals">
     <div class="dashboard-card__heading">
@@ -223,7 +229,7 @@ function renderMealsCard(profile, result, date, now) {
       ${dashboardDateControls('meals', date, now)}
     </div>
     ${failure ?? (items.length > 0
-      ? `<ul class="meal-preview">${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`
+      ? `<ul class="meal-preview">${items.map((item) => mealItemMarkup(item, profile.allergies ?? [])).join('')}</ul>`
       : '<div class="dashboard-state" role="status"><p>오늘 등록된 급식 정보가 없어요.</p></div>')}
     ${matched.length > 0 ? `<p class="allergy-match">설정한 알레르기 번호 ${matched.map(escapeHtml).join(', ')}가 표기된 메뉴가 있어요.</p>` : ''}
     <p class="allergy-note">알레르기 안내는 NEIS 급식 알레르기 표기를 기준으로 하며, 실제 제공 식단은 학교에 다시 확인해 주세요.</p>

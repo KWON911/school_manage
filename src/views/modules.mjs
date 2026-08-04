@@ -2,6 +2,7 @@ import {
   fetchMeals as requestMeals,
   fetchSchedule as requestSchedule,
   fetchTimetable as requestTimetable,
+  dishMatchesAllergies,
   mealMatchesAllergies
 } from '../services/neis.mjs';
 import { fetchCalendarEvents as requestCalendarEvents } from '../services/google-calendar.mjs';
@@ -266,11 +267,20 @@ function allergyWarning(row, allergies) {
   </p>`;
 }
 
+function mealItemMarkup(dish, allergies) {
+  const matched = dishMatchesAllergies(dish, allergies);
+  if (matched.length === 0) return `<li class="meal-item">${escapeHtml(dish)}</li>`;
+  return `<li class="meal-item meal-item--allergy">
+    <span>${escapeHtml(dish)}</span>
+    <span class="meal-item__warning"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3 2.5 20h19z"/><path d="M12 9v5m0 3h.01"/></svg><span>\uC54C\uB808\uB974\uAE30 ${matched.map(escapeHtml).join(', ')}\uBC88 \uD3EC\uD568</span></span>
+  </li>`;
+}
+
 function mealCards(rows, allergies) {
   if (rows.length === 0) return '<p class="module-empty" role="status">이 날짜에 등록된 급식 정보가 없어요.</p>';
   return `<div class="meal-detail-list">${rows.map((row) => `<article class="meal-detail-card">
     <h3>${escapeHtml(row.MMEAL_SC_NM || '급식')}</h3>
-    <ul>${mealDishes(row).map((dish) => `<li>${escapeHtml(dish)}</li>`).join('')}</ul>
+    <ul>${mealDishes(row).map((dish) => mealItemMarkup(dish, allergies)).join('')}</ul>
     ${allergyWarning(row, allergies)}
   </article>`).join('')}</div>`;
 }

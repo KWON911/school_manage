@@ -11,6 +11,13 @@ test('Google OAuth uses the registered callback route instead of an action query
   assert.match(source, /https:\/\/school-life-info\.vercel\.app\/api\/google-calendar\/callback/);
 });
 
+test('dish allergy matching returns only the selected complete codes', async () => {
+  const { dishMatchesAllergies } = await import('../src/services/neis.mjs');
+
+  assert.deepEqual(dishMatchesAllergies('Steamed egg(1.6.)', ['1', '6', '16']), ['1', '6']);
+  assert.deepEqual(dishMatchesAllergies('Sausage(11.)', ['1']), []);
+});
+
 test('Google Calendar server exposes calendar-list and selected calendar event requests', async () => {
   const source = await readFile(new URL('../api/google-calendar.js', import.meta.url), 'utf8');
   assert.match(source, /action === 'calendar-list'/);
@@ -161,8 +168,8 @@ test('treats a NEIS RESULT error payload without rows as a server error', async 
   }
 });
 
-test('meal allergy matching compares complete NEIS numbers instead of substrings', async () => {
-  const { getMealAllergyCodes, mealMatchesAllergies } = await import('../src/services/neis.mjs');
+test('dish allergy matching compares complete NEIS numbers instead of substrings', async () => {
+  const { getMealAllergyCodes, mealMatchesAllergies, dishMatchesAllergies } = await import('../src/services/neis.mjs');
   const meal = { DDISH_NM: '콩나물국(5.6.)<br/>소시지볶음(11.13.)<br/>계란찜(1.)' };
 
   assert.deepEqual(getMealAllergyCodes(meal), ['5', '6', '11', '13', '1']);

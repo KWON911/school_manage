@@ -354,6 +354,8 @@ test('meal calendar updates selected-day details and warns with icon and text on
   container.fire('click', target({ mode: 'calendar' }));
   container.fire('click', target({ date: '20260804' }));
 
+  assert.match(container.innerHTML, /class="meal-item meal-item--allergy"[\s\S]*\uC54C\uB808\uB974\uAE30 1\uBC88 \uD3EC\uD568/);
+
   assert.match(container.innerHTML, /role="tabpanel"[^>]*id="meals-calendar-panel"/);
   assert.match(container.innerHTML, /data-date="20260804"[^>]*aria-pressed="true"/);
   assert.match(container.innerHTML, /계란찜\(1\.\)/);

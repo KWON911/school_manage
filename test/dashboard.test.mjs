@@ -105,6 +105,29 @@ test('student dashboard shows a vertical full timetable beside today meals', asy
   assert.match(container.innerHTML, /다가오는 일정/);
 });
 
+test('dashboard highlights only dishes matching saved allergies', async () => {
+  const container = createContainer();
+  const view = renderDashboard(container, {
+    profile: profile('student', { allergies: ['1'] }),
+    services: {
+      ...successfulServices(),
+      async fetchMeals() {
+        return {
+          status: 'ok',
+          rows: [{ MLSV_YMD: '20260803', MMEAL_SC_NM: 'Lunch', DDISH_NM: 'Egg(1.)<br/>Sausage(11.)' }]
+        };
+      }
+    },
+    now: new Date('2026-08-03T09:00:00+09:00')
+  });
+
+  await view.ready;
+
+  const meals = sectionMarkup(container.innerHTML, 'meals');
+  assert.match(meals, /<li class="meal-item meal-item--allergy">[\s\S]*Egg\(1\.\)[\s\S]*\uC54C\uB808\uB974\uAE30 1\uBC88 \uD3EC\uD568/);
+  assert.match(meals, /<li class="meal-item">Sausage\(11\.\)<\/li>/);
+});
+
 test('dashboard displays a live Korean date clock and clears its timer on destroy', async () => {
   const container = createContainer();
   const clockNode = { textContent: '', dateTime: '' };
