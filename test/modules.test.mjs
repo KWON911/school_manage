@@ -75,7 +75,14 @@ test('all school-information modules render the same ordered date toolbar', asyn
 
     const actions = [...container.innerHTML.matchAll(/data-date-action="([^"]+)"/g)]
       .map((match) => match[1]);
-    assert.deepEqual(actions, ['previous', 'next', 'today']);
+    assert.deepEqual(actions, renderModule === renderMealsModule
+      ? ['previous', 'today', 'next']
+      : ['previous', 'next', 'today']);
+    if (renderModule === renderMealsModule) {
+      assert.match(container.innerHTML, /data-date-action="previous">\uC774\uC804 \uC8FC/);
+      assert.match(container.innerHTML, /data-date-action="today"[^>]*>[\s\S]*2026/);
+      continue;
+    }
     assert.match(container.innerHTML, /data-date-action="previous"[^>]*>이전 (?:날짜|주|달)<\/button>[\s\S]*<time[^>]*>2026년 8월 3일 \(월\)<\/time>[\s\S]*data-date-action="next"[^>]*>다음 (?:날짜|주|달)<\/button>[\s\S]*data-date-action="today"[^>]*>오늘<\/button>/);
   }
 });
@@ -327,6 +334,68 @@ test('timetable setup problems point to the relevant settings section without an
   assert.match(unsupportedContainer.innerHTML, /data-view="settings"[^>]*data-settings-target="school"[^>]*>학교 설정으로 이동/);
 });
 
+test('meals default to weekdays and use week or month navigation labels', async () => {
+  const container = createContainer();
+  const view = renderMealsModule(container, {
+    profile: PROFILE,
+    now: new Date(2026, 7, 4),
+    services: {
+      ...emptyServices,
+      async fetchMeals() {
+        return {
+          status: 'ok',
+          rows: [
+            { MLSV_YMD: '20260803', MMEAL_SC_NM: 'Lunch', DDISH_NM: 'Rice' },
+            { MLSV_YMD: '20260804', MMEAL_SC_NM: 'Lunch', DDISH_NM: 'Soup' }
+          ]
+        };
+      }
+    }
+  });
+  await view.ready;
+
+  assert.match(container.innerHTML, /data-mode="week"[^>]*aria-selected="true"/);
+  assert.match(container.innerHTML, /data-mode="month"/);
+  assert.match(container.innerHTML, /data-date-action="previous">\uC774\uC804 \uC8FC/);
+  assert.match(container.innerHTML, /data-date-action="today"[^>]*aria-label="\uC774\uBC88 \uC8FC/);
+  assert.match(container.innerHTML, /data-date-action="next">\uB2E4\uC74C \uC8FC/);
+  assert.match(container.innerHTML, /2026[\s\S]*8[\s\S]*3[\s\S]*8[\s\S]*7/);
+
+  container.fire('click', target({ mode: 'month' }));
+  await view.ready;
+
+  assert.match(container.innerHTML, /data-mode="month"[^>]*aria-selected="true"/);
+  assert.match(container.innerHTML, /data-date-action="previous">\uC774\uC804 \uB2EC/);
+  assert.match(container.innerHTML, /data-date-action="today"[^>]*aria-label="\uC774\uBC88 \uB2EC/);
+  assert.match(container.innerHTML, /data-date-action="next">\uB2E4\uC74C \uB2EC/);
+});
+
+test('meal navigation moves by the active period and resets to the current period', async () => {
+  const container = createContainer();
+  const view = renderMealsModule(container, {
+    profile: PROFILE,
+    now: new Date(2026, 7, 4),
+    services: { ...emptyServices, fetchMeals: async () => ({ status: 'no-data', rows: [] }) }
+  });
+  await view.ready;
+
+  container.fire('click', target({ dateAction: 'previous' }));
+  await view.ready;
+  assert.match(container.innerHTML, /datetime="2026-07-28"/);
+  assert.match(container.innerHTML, /2026[\s\S]*7[\s\S]*27[\s\S]*7[\s\S]*31/);
+
+  container.fire('click', target({ dateAction: 'today' }));
+  await view.ready;
+  assert.match(container.innerHTML, /datetime="2026-08-04"/);
+
+  container.fire('click', target({ mode: 'month' }));
+  await view.ready;
+  container.fire('click', target({ dateAction: 'previous' }));
+  await view.ready;
+  assert.match(container.innerHTML, /datetime="2026-07-04"/);
+  assert.match(container.innerHTML, /2026[\s\S]*7\uC6D4/);
+});
+
 test('meal calendar updates selected-day details and warns with icon and text only for exact allergy numbers', async () => {
   const container = createContainer();
   const view = renderMealsModule(container, {
@@ -347,16 +416,16 @@ test('meal calendar updates selected-day details and warns with icon and text on
   });
   await view.ready;
 
-  assert.match(container.innerHTML, /role="tab"[^>]*data-mode="day"[^>]*aria-selected="true"/);
+  assert.match(container.innerHTML, /role="tab"[^>]*data-mode="week"[^>]*aria-selected="true"/);
   assert.match(container.innerHTML, /소시지\(11\.\)/);
-  assert.doesNotMatch(container.innerHTML, /class="allergy-warning"/);
 
-  container.fire('click', target({ mode: 'calendar' }));
+  container.fire('click', target({ mode: 'month' }));
+  await view.ready;
   container.fire('click', target({ date: '20260804' }));
 
   assert.match(container.innerHTML, /class="meal-item meal-item--allergy"[\s\S]*\uC54C\uB808\uB974\uAE30 1\uBC88 \uD3EC\uD568/);
 
-  assert.match(container.innerHTML, /role="tabpanel"[^>]*id="meals-calendar-panel"/);
+  assert.match(container.innerHTML, /role="tabpanel"[^>]*id="meals-month-panel"/);
   assert.match(container.innerHTML, /data-date="20260804"[^>]*aria-pressed="true"/);
   assert.match(container.innerHTML, /계란찜\(1\.\)/);
   assert.match(container.innerHTML, /class="allergy-warning"[^>]*role="status"[\s\S]*<svg[^>]*aria-hidden="true"[\s\S]*알레르기 1번/);
@@ -515,6 +584,8 @@ test('module failures keep no-data, network, and server states distinct', async 
 
 test('module CSS keeps controls touch-sized and replaces the mobile week table with cards', async () => {
   const css = await readFile(new URL('../src/styles/app.css', import.meta.url), 'utf8');
+  assert.match(css, /\.meal-week-list\s*\{[\s\S]*display:\s*grid/);
+  assert.match(css, /\.module-date-toolbar--compact\s*\{/);
   const toolbarRule = css.match(/\.module-date-toolbar button\s*\{([^}]*)\}/)?.[1] ?? '';
   const minHeight = Number(toolbarRule.match(/min-height:\s*([\d.]+)px/)?.[1]);
   const calendarRule = css.match(/\.module-calendar__days button\s*\{([^}]*)\}/)?.[1] ?? '';

@@ -52,10 +52,33 @@ function fullDateLabel(key) {
   return date ? `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일` : '';
 }
 
-function dateToolbar(date, kind) {
+function weekRangeLabel(date) {
+  const days = schoolWeek(date);
+  const start = days[0];
+  const end = days.at(-1);
+  return `${start.getFullYear()}\uB144 ${start.getMonth() + 1}\uC6D4 ${start.getDate()}\uC77C ~ ${end.getMonth() + 1}\uC6D4 ${end.getDate()}\uC77C`;
+}
+
+function monthLabel(date) {
+  return `${date.getFullYear()}\uB144 ${date.getMonth() + 1}\uC6D4`;
+}
+
+function dateToolbar(date, kind, mode) {
   const key = dateKey(date);
   const isTimetable = kind === 'timetable';
   const isSchedule = kind === 'schedule';
+  if (kind === 'meals') {
+    const isMonth = mode === 'month';
+    const label = isMonth ? monthLabel(date) : weekRangeLabel(date);
+    const previous = isMonth ? '\uC774\uC804 \uB2EC' : '\uC774\uC804 \uC8FC';
+    const next = isMonth ? '\uB2E4\uC74C \uB2EC' : '\uB2E4\uC74C \uC8FC';
+    const current = isMonth ? '\uC774\uBC88 \uB2EC' : '\uC774\uBC88 \uC8FC';
+    return `<div class="module-date-toolbar module-date-toolbar--compact" aria-label="\uAE09\uC2DD \uAE30\uAC04 \uC774\uB3D9">
+      <button type="button" data-date-action="previous">${previous}</button>
+      <button class="module-date-toolbar__current" type="button" data-date-action="today" aria-label="${current}\uB85C \uB3CC\uC544\uAC00\uAE30"><time datetime="${key.slice(0, 4)}-${key.slice(4, 6)}-${key.slice(6)}">${label}</time></button>
+      <button type="button" data-date-action="next">${next}</button>
+    </div>`;
+  }
   return `<div class="module-date-toolbar" aria-label="날짜 이동">
     <button type="button" data-date-action="previous">${isTimetable ? '이전 주' : isSchedule ? '이전 달' : '이전 날짜'}</button>
     <time datetime="${key.slice(0, 4)}-${key.slice(4, 6)}-${key.slice(6)}">${dateLabel(date)}</time>
@@ -285,7 +308,44 @@ function mealCards(rows, allergies) {
   </article>`).join('')}</div>`;
 }
 
+function weeklyMealCards(date, rows, allergies) {
+  return `<div class="meal-week-list">${schoolWeek(date).map((day) => {
+    const dayRows = rows.filter((row) => row.MLSV_YMD === dateKey(day));
+    return `<section class="meal-week-day" aria-labelledby="meal-week-day-${dateKey(day)}">
+      <h2 id="meal-week-day-${dateKey(day)}">${dateLabel(day)}</h2>
+      ${mealCards(dayRows, allergies)}
+    </section>`;
+  }).join('')}</div>`;
+}
+
 function renderMeals(date, mode, result, allergies) {
+  if (mode === 'week' || mode === 'month') {
+    const rows = (result.rows ?? [])
+      .filter((row) => dateFromKey(row.MLSV_YMD))
+      .sort((a, b) => String(a.MLSV_YMD).localeCompare(String(b.MLSV_YMD)));
+    const selectedRows = rows.filter((row) => row.MLSV_YMD === dateKey(date));
+    const tabMarkup = tabs('meals', mode, [
+      { id: 'week', text: '\uC8FC\uBCC4' },
+      { id: 'month', text: '\uC6D4\uBCC4' }
+    ]);
+    const failure = resourceState('meals', result);
+    if (failure) {
+      const otherMode = mode === 'week' ? 'month' : 'week';
+      return `${tabMarkup}<div role="tabpanel" id="meals-${mode}-panel" aria-labelledby="meals-${mode}-tab">${failure}</div><div role="tabpanel" id="meals-${otherMode}-panel" aria-labelledby="meals-${otherMode}-tab" hidden></div>`;
+    }
+    const note = '<p class="allergy-reference">\uC54C\uB808\uB974\uAE30 \uC548\uB0B4\uB294 NEIS \uD45C\uAE30\uB97C \uAE30\uC900\uC73C\uB85C \uD55C \uCC38\uACE0 \uC815\uBCF4\uC608\uC694. \uC2E4\uC81C \uC81C\uACF5 \uC2DD\uB2E8\uC740 \uD559\uAD50\uC5D0\uB3C4 \uD655\uC778\uD574 \uC8FC\uC138\uC694.</p>';
+    if (mode === 'month') {
+      return `${tabMarkup}<div role="tabpanel" id="meals-week-panel" aria-labelledby="meals-week-tab" hidden></div><div role="tabpanel" id="meals-month-panel" aria-labelledby="meals-month-tab">
+        ${calendarDays(date, rows, 'MLSV_YMD')}
+        <section class="selected-day-detail" aria-labelledby="meals-selected-title">
+          <h2 id="meals-selected-title">\uC120\uD0DD\uD55C \uB0A0\uC758 \uAE09\uC2DD</h2>
+          ${mealCards(selectedRows, allergies)}
+        </section>
+        ${note}
+      </div>`;
+    }
+    return `${tabMarkup}<div role="tabpanel" id="meals-week-panel" aria-labelledby="meals-week-tab">${weeklyMealCards(date, rows, allergies)}${note}</div><div role="tabpanel" id="meals-month-panel" aria-labelledby="meals-month-tab" hidden></div>`;
+  }
   const rows = (result.rows ?? [])
     .filter((row) => dateFromKey(row.MLSV_YMD))
     .sort((a, b) => String(a.MLSV_YMD).localeCompare(String(b.MLSV_YMD)));
@@ -329,7 +389,7 @@ function createModule(container, context, kind) {
     return value instanceof Date ? new Date(value) : new Date();
   };
   let selectedDate = readNow();
-  let mode = kind === 'schedule' ? 'list' : kind === 'timetable' ? 'week' : 'day';
+  let mode = kind === 'schedule' ? 'list' : 'week';
   let result = { status: 'loading', rows: [] };
   let destroyed = false;
   let loadVersion = 0;
@@ -347,7 +407,7 @@ function createModule(container, context, kind) {
         <div><p class="eyebrow">학교 정보</p><h1 id="view-title">${titles[kind]}</h1></div>
         <span>${escapeHtml(context.profile?.school?.name)}</span>
       </header>
-      ${dateToolbar(selectedDate, kind)}
+      ${dateToolbar(selectedDate, kind, mode)}
       ${content}
     </section>`;
   }
@@ -375,9 +435,20 @@ function createModule(container, context, kind) {
         ]).then(([schedule, calendar]) => combinedScheduleResult(schedule, calendar))
         : Promise.resolve({ status: 'missing-school', rows: [] });
     } else if (kind === 'meals') {
-      request = context.profile?.school?.kind
-        ? services.fetchMeals(context.profile.school, monthKey(selectedDate))
-        : Promise.resolve({ status: 'missing-school', rows: [] });
+      if (!context.profile?.school?.kind) {
+        request = Promise.resolve({ status: 'missing-school', rows: [] });
+      } else {
+        const months = [...new Set((mode === 'week' ? schoolWeek(selectedDate) : [selectedDate]).map(monthKey))];
+        request = Promise.all(months.map((month) => services.fetchMeals(context.profile.school, month)))
+          .then((results) => {
+            const rows = results.flatMap((item) => item.status === 'ok' ? (item.rows ?? []) : []);
+            if (rows.length > 0) return { status: 'ok', rows };
+            return results.find((item) => item.status === 'network-error' || item.status === 'server-error')
+              ?? results.find((item) => item.status === 'ok')
+              ?? results[0]
+              ?? { status: 'no-data', rows: [] };
+          });
+      }
     }
     else {
       const school = context.profile?.school;
@@ -406,7 +477,7 @@ function createModule(container, context, kind) {
   function activateMode(nextMode, origin) {
     mode = nextMode;
     const selector = `[role="tab"][data-mode="${mode}"]`;
-    if (kind === 'timetable') {
+    if (kind === 'timetable' || kind === 'meals') {
       load({ origin, selector });
     } else {
       const restore = shouldRestoreFocus(origin);
@@ -418,11 +489,13 @@ function createModule(container, context, kind) {
   function onClick(event) {
     const control = event.target.closest?.('[data-date-action]');
     if (control) {
-      const offset = kind === 'timetable' ? 7 : 1;
-      if (control.dataset.dateAction === 'previous') selectedDate = kind === 'schedule'
+      const isWeeklyMeals = kind === 'meals' && mode === 'week';
+      const offset = kind === 'timetable' || isWeeklyMeals ? 7 : 1;
+      const isMonthly = kind === 'schedule' || (kind === 'meals' && mode === 'month');
+      if (control.dataset.dateAction === 'previous') selectedDate = isMonthly
         ? moveMonth(selectedDate, -1)
         : new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() - offset);
-      if (control.dataset.dateAction === 'next') selectedDate = kind === 'schedule'
+      if (control.dataset.dateAction === 'next') selectedDate = isMonthly
         ? moveMonth(selectedDate, 1)
         : new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() + offset);
       if (control.dataset.dateAction === 'today') selectedDate = readNow();
@@ -433,7 +506,7 @@ function createModule(container, context, kind) {
       return;
     }
     const modeControl = event.target.closest?.('[data-mode]');
-    const validModes = kind === 'schedule' ? ['list', 'calendar'] : ['day', 'calendar'];
+    const validModes = kind === 'schedule' ? ['list', 'calendar'] : kind === 'meals' ? ['week', 'month'] : ['week'];
     if (modeControl && validModes.includes(modeControl.dataset.mode)) {
       activateMode(modeControl.dataset.mode, modeControl);
       return;
@@ -457,7 +530,7 @@ function createModule(container, context, kind) {
   function onKeyDown(event) {
     const tab = event.target.closest?.('[data-mode]');
     if (!tab || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-    const validModes = kind === 'schedule' ? ['list', 'calendar'] : ['day', 'calendar'];
+    const validModes = kind === 'schedule' ? ['list', 'calendar'] : kind === 'meals' ? ['week', 'month'] : ['week'];
     const currentIndex = Math.max(0, validModes.indexOf(tab.dataset.mode));
     let nextIndex = currentIndex;
     if (event.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + validModes.length) % validModes.length;
