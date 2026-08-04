@@ -65,6 +65,12 @@ function createContainer() {
   };
 }
 
+function createDeferred() {
+  let resolve;
+  const promise = new Promise((complete) => { resolve = complete; });
+  return { promise, resolve };
+}
+
 function sectionMarkup(html, section) {
   const pattern = new RegExp(`<(?:article|section)[^>]*data-dashboard-section="${section}"[\\s\\S]*?<\\/(?:article|section)>`);
   return html.match(pattern)?.[0] ?? '';
@@ -103,6 +109,28 @@ test('student dashboard shows a vertical full timetable beside today meals', asy
   assert.match(container.innerHTML, /timetable-preview--vertical/);
   assert.match(container.innerHTML, /data-dashboard-section="upcoming"/);
   assert.match(container.innerHTML, /다가오는 일정/);
+});
+
+test('dashboard shows completed timetable and meal cards before a slow schedule request finishes', async () => {
+  const container = createContainer();
+  const slowSchedule = createDeferred();
+  const view = renderDashboard(container, {
+    profile: profile('student'),
+    services: {
+      ...successfulServices(),
+      fetchSchedule: () => slowSchedule.promise
+    },
+    now: new Date('2026-08-03T09:00:00+09:00')
+  });
+
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.match(sectionMarkup(container.innerHTML, 'timetable'), /timetable-preview--vertical/);
+  assert.match(sectionMarkup(container.innerHTML, 'meals'), /meal-preview/);
+  assert.doesNotMatch(sectionMarkup(container.innerHTML, 'upcoming'), /upcoming-list/);
+
+  slowSchedule.resolve({ status: 'ok', rows: [] });
+  await view.ready;
 });
 
 test('dashboard highlights only dishes matching saved allergies', async () => {

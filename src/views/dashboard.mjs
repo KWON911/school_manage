@@ -140,6 +140,10 @@ function failureState(status, resource) {
   return message ? `<div class="dashboard-state" role="alert"><p>${message}</p></div>` : null;
 }
 
+function loadingState(message) {
+  return `<div class="dashboard-state" role="status" aria-busy="true"><p>${message}</p></div>`;
+}
+
 function stateAction(status) {
   if (status === 'network-error' || status === 'server-error') {
     return retryAction('timetable');
@@ -168,6 +172,16 @@ function renderTimetableCard(section, profile, result, date, now) {
   const classLabel = `${escapeHtml(profile.classSetting?.grade)}학년 ${escapeHtml(profile.classSetting?.classNm)}반`;
   const title = '오늘 시간표';
   const dateControls = dashboardDateControls('timetable', date, now);
+  if (result.status === 'loading') {
+    return `<article class="dashboard-card dashboard-card--timetable" data-dashboard-section="${section}">
+      <div class="dashboard-card__heading">
+        <p class="dashboard-card__eyebrow">오늘의 수업</p>
+        <h2>${title}</h2>
+        ${dateControls}
+      </div>
+      ${loadingState('시간표를 불러오는 중이에요.')}
+    </article>`;
+  }
   if (result.status !== 'ok') {
     return `<article class="dashboard-card dashboard-card--timetable" data-dashboard-section="${section}">
       <div class="dashboard-card__heading">
@@ -218,6 +232,16 @@ function mealItemMarkup(item, allergies) {
 }
 
 function renderMealsCard(profile, result, date, now) {
+  if (result.status === 'loading') {
+    return `<article class="dashboard-card dashboard-card--meals" data-dashboard-section="meals">
+      <div class="dashboard-card__heading">
+        <p class="dashboard-card__eyebrow">오늘의 급식</p>
+        <h2>급식 식단</h2>
+        ${dashboardDateControls('meals', date, now)}
+      </div>
+      ${loadingState('급식 정보를 불러오는 중이에요.')}
+    </article>`;
+  }
   const row = (result.rows ?? []).find((item) => item.MLSV_YMD === date.key);
   const items = result.status === 'ok' ? mealItems(row) : [];
   const matched = mealMatchesAllergies(row, profile.allergies ?? []);
@@ -261,6 +285,13 @@ function upcomingRows(schedule, calendar, date) {
 
 function renderUpcomingCard(schedule, calendar, date) {
   const rows = upcomingRows(schedule, calendar, date);
+  if (rows.length === 0 && (schedule.status === 'loading' || calendar.status === 'loading')) {
+    return `<article class="dashboard-card dashboard-card--upcoming" data-dashboard-section="upcoming">
+      <div class="dashboard-card__heading"><p class="dashboard-card__eyebrow">일정 모아보기</p><h2>다가오는 일정</h2></div>
+      ${loadingState('일정을 불러오는 중이에요.')}
+      ${action('schedule', '일정 전체 보기')}
+    </article>`;
+  }
   const content = rows.length > 0
     ? `<ol class="upcoming-list">${rows.map((row) => `<li class="upcoming-list__item upcoming-list__item--${row.source === '개인 일정' ? 'personal' : 'school'}"><time><strong>${escapeHtml(String(row.date).slice(4, 6))}.${escapeHtml(String(row.date).slice(6, 8))}</strong><span>${escapeHtml(row.date === date.key ? '오늘' : row.timeLabel || '예정')}</span></time><div><strong>${escapeHtml(row.title)}</strong><span class="schedule-source">${escapeHtml(row.source)}</span></div></li>`).join('')}</ol>`
     : '<div class="dashboard-state" role="status"><p>다가오는 일정이 아직 없어요.</p></div>';
@@ -324,30 +355,51 @@ export function renderDashboard(container, context = {}) {
     const timetableKey = cacheKey(profile, timetableDay.key);
     const mealKey = cacheKey(profile, mealsDay.month);
     const needsMeals = getDashboardSections(profile.role).includes('meals');
-    const [timetable, meals, schedule, calendar] = await Promise.all([
-      cachedRequest(caches.timetable, timetableKey, () => services.fetchTimetable(
-        profile.school,
-        profile.classSetting,
-        { from: timetableDay.key, to: timetableDay.key }
-      )),
-      needsMeals
-        ? cachedRequest(caches.meals, mealKey, () => services.fetchMeals(profile.school, mealsDay.month))
-        : Promise.resolve({ status: 'no-data', rows: [] }),
-      cachedRequest(caches.schedule, cacheKey(profile, date.month), () => services.fetchSchedule(profile.school, date.month)),
-      calendarIds.length > 0
-        ? services.fetchCalendarEvents(date.key, monthEndKey(now), calendarIds)
-        : Promise.resolve({ status: 'ok', rows: [] })
-    ]);
-    if (destroyed || version !== loadVersion) return;
+    const results = {
+      timetable: { status: 'loading', rows: [] },
+      meals: needsMeals ? { status: 'loading', rows: [] } : { status: 'no-data', rows: [] },
+      schedule: { status: 'loading', rows: [] },
+      calendar: calendarIds.length > 0 ? { status: 'loading', rows: [] } : { status: 'ok', rows: [] }
+    };
+    const renderResults = () => {
+      if (destroyed || version !== loadVersion) return;
+      const sections = getDashboardSections(profile.role).filter((section) => section !== 'upcoming').map((section) => {
+        if (section === 'timetable' || section === 'child-class') {
+          return renderTimetableCard(section, profile, results.timetable, timetableDay, now);
+        }
+        return renderMealsCard(profile, results.meals, mealsDay, now);
+      });
+      container.innerHTML = `${dashboardTopMarkup(profile, getCurrentTime())}
+        <div class="dashboard-overview"><div class="dashboard-stack">${sections.join('')}</div>${renderUpcomingCard(results.schedule, results.calendar, date)}</div>`;
+    };
+    const settle = (resource, request) => Promise.resolve(request)
+      .catch(() => ({ status: 'network-error', rows: [] }))
+      .then((result) => {
+        if (destroyed || version !== loadVersion) return result;
+        results[resource] = result;
+        renderResults();
+        return result;
+      });
+    const timetableRequest = cachedRequest(caches.timetable, timetableKey, () => services.fetchTimetable(
+      profile.school,
+      profile.classSetting,
+      { from: timetableDay.key, to: timetableDay.key }
+    ));
+    const mealsRequest = needsMeals
+      ? cachedRequest(caches.meals, mealKey, () => services.fetchMeals(profile.school, mealsDay.month))
+      : Promise.resolve(results.meals);
+    const scheduleRequest = cachedRequest(caches.schedule, cacheKey(profile, date.month), () => services.fetchSchedule(profile.school, date.month));
+    const calendarRequest = calendarIds.length > 0
+      ? services.fetchCalendarEvents(date.key, monthEndKey(now), calendarIds)
+      : Promise.resolve(results.calendar);
 
-    const sections = getDashboardSections(profile.role).filter((section) => section !== 'upcoming').map((section) => {
-      if (section === 'timetable' || section === 'child-class') {
-        return renderTimetableCard(section, profile, timetable, timetableDay, now);
-      }
-      return renderMealsCard(profile, meals, mealsDay, now);
-    });
-    container.innerHTML = `${dashboardTopMarkup(profile, getCurrentTime())}
-      <div class="dashboard-overview"><div class="dashboard-stack">${sections.join('')}</div>${renderUpcomingCard(schedule, calendar, date)}</div>`;
+    renderResults();
+    await Promise.all([
+      settle('timetable', timetableRequest),
+      settle('meals', mealsRequest),
+      settle('schedule', scheduleRequest),
+      settle('calendar', calendarRequest)
+    ]);
   }
 
   function onClick(event) {
