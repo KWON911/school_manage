@@ -152,6 +152,8 @@ test('app shell renders semantic content without the supporting sidebar', () => 
   assert.doesNotMatch(container.innerHTML, /<aside class="support-panel"/);
   assert.match(container.innerHTML, /data-view="schedule"[^>]*aria-current="page"/);
   assert.match(container.innerHTML, /class="brand-school-icon"/);
+  assert.match(container.innerHTML, /<div class="brand-lockup">\s*<svg class="brand-school-icon"[\s\S]*?<strong>학교생활<\/strong>\s*<\/div>/);
+  assert.doesNotMatch(container.innerHTML, /오늘을 한눈에/);
   assert.match(container.innerHTML, /class="school-switcher"[^>]*data-view="settings"[^>]*data-settings-target="school"/);
   assert.match(container.innerHTML, /가람중학교/);
   assert.match(container.innerHTML, /class="compact-school-switcher"/);

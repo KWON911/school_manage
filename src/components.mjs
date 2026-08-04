@@ -106,10 +106,7 @@ export function renderAppShell(container, activeView = 'home', options = {}) {
         <aside class="sidebar" aria-label="학교생활 탐색">
           <div class="brand-lockup">
             ${SCHOOL_ICON}
-            <div>
-              <strong>학교생활</strong>
-              <span>오늘을 한눈에</span>
-            </div>
+            <strong>학교생활</strong>
           </div>
           ${schoolSwitcher('school-switcher', schoolName)}
           <nav class="sidebar-navigation" aria-label="주요 메뉴">${navigation}</nav>
