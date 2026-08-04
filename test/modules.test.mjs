@@ -599,6 +599,15 @@ test('module CSS keeps controls touch-sized and replaces the mobile week table w
   assert.match(css, /@media \(max-width: 359px\)[\s\S]*\.module-calendar__days\s*\{[^}]*grid-template-columns:\s*repeat\(4,/);
 });
 
+test('weekly meals use five weekday columns on desktop, a single column on mobile, and a high-contrast current period control', async () => {
+  const css = await readFile(new URL('../src/styles/app.css', import.meta.url), 'utf8');
+  const mobileRules = css.slice(css.lastIndexOf('@media (max-width: 767px)'));
+
+  assert.match(css, /\.meal-week-list\s*\{[^}]*grid-template-columns:\s*repeat\(5,/);
+  assert.match(mobileRules, /\.meal-week-list\s*\{[^}]*grid-template-columns:\s*1fr/);
+  assert.match(css, /\.module-date-toolbar--compact \[data-date-action="today"\] time\s*\{[^}]*color:\s*var\(--surface\)/);
+});
+
 test('a late date response cannot replace the newest timetable selection', async () => {
   const container = createContainer();
   const first = createDeferred();

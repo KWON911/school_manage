@@ -1205,6 +1205,10 @@
   font: inherit;
 }
 
+.module-date-toolbar--compact [data-date-action="today"] time {
+  color: var(--surface);
+}
+
 .module-tabs {
   display: flex;
   width: fit-content;
@@ -1490,21 +1494,28 @@
 
 .meal-week-list {
   display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
 }
 
 .meal-week-day {
+  display: flex;
+  min-width: 0;
   padding: 18px;
+  flex-direction: column;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: rgba(203, 162, 88, 0.06);
 }
 
 .meal-week-day h2 {
-  margin: 0 0 12px;
+  margin: 0 0 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
   color: var(--deep);
   font-size: 16px;
   font-weight: 700;
+  text-align: center;
 }
 
 .meal-week-day .meal-detail-list {
@@ -1972,6 +1983,14 @@
     display: grid;
     min-width: 0;
     gap: 10px;
+  }
+
+  .meal-week-list {
+    grid-template-columns: 1fr;
+  }
+
+  .meal-week-day h2 {
+    text-align: left;
   }
 
   .weekday-card {
