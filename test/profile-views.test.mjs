@@ -185,6 +185,8 @@ test('settings markup keeps role, school, class, and allergy controls in one for
   assert.match(markup, /<section[^>]*aria-labelledby="settings-class-title"/);
   assert.match(markup, /<section[^>]*aria-labelledby="settings-allergy-title"/);
   assert.equal((markup.match(/type="time"/g) ?? []).length, 12);
+  assert.doesNotMatch(markup, /학교생활 대시보드/);
+  assert.doesNotMatch(markup, /class="content-heading"/);
 });
 
 test('settings provides a Google Calendar connection control', () => {

@@ -73,11 +73,7 @@ export function renderSettingsMarkup(state = {}) {
   const classSetting = draft.classSetting ?? { grade: '', classNm: '' };
   const errors = state.errors ?? {};
 
-  return `<div class="content-heading">
-    <p>학교생활 대시보드</p>
-    <span>${escapeHtml(draft.school?.name ?? '학교 미설정')}</span>
-  </div>
-  <div class="settings-view">
+  return `<div class="settings-view">
     <header class="view-header">
       <p class="eyebrow">기기에 저장되는 정보</p>
       <h1 id="view-title">내 설정</h1>

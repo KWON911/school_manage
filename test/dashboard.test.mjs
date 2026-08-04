@@ -127,6 +127,7 @@ test('dashboard displays a live Korean date clock and clears its timer on destro
   await view.ready;
 
   assert.match(container.innerHTML, /data-dashboard-clock/);
+  assert.match(container.innerHTML, /class="dashboard-header__topline"/);
   assert.doesNotMatch(container.innerHTML, /오늘의 학교생활/);
   assert.match(container.innerHTML, /2026년 8월 4일 \(화\) · 오후 12:34:56/);
   currentTime = new Date(2026, 7, 4, 12, 34, 57);

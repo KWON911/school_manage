@@ -356,11 +356,18 @@
 }
 
 .dashboard-header {
-  padding: 6px 2px 2px;
+  padding: 2px;
+}
+
+.dashboard-header__topline {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .dashboard-header h1 {
-  margin: 5px 0 0;
+  margin: 0;
   color: var(--deep);
   font-size: clamp(28px, 3vw, 38px);
   font-weight: 600;
@@ -1673,8 +1680,9 @@
   }
 
   .dashboard-clock {
-    flex: 1 1 240px;
+    flex: initial;
     font-size: 13px;
+    text-align: left;
   }
 
   .status-card {
@@ -1693,6 +1701,11 @@
 
   .dashboard-header {
     padding: 2px 0 0;
+  }
+
+  .dashboard-header__topline {
+    display: grid;
+    gap: 4px;
   }
 
   .dashboard-header h1 {
