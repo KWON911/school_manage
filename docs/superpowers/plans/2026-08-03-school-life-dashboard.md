@@ -4,7 +4,7 @@
 
 **목표:** 초·중·고 학생·학부모·교사가 역할에 맞는 학교생활 정보를 PC와 모바일에서 직관적으로 조회하는 반응형 대시보드를 만든다.
 
-**구조:** 기존 단일 index.html을 진입 HTML과 브라우저 ES 모듈로 나눈다. 학교급 규칙·저장소·NEIS URL 생성은 순수 모듈과 Node 내장 테스트로 검증한다. main.js가 상태와 설정·대시보드·상세 화면 모듈을 연결한다.
+**구조:** 기존 단일 index.html을 진입 HTML과 브라우저 ES 모듈(.mjs)로 나눈다. 학교급 규칙·저장소·NEIS URL 생성은 순수 모듈과 Node 내장 테스트로 검증한다. main.mjs가 상태와 설정·대시보드·상세 화면 모듈을 연결한다. Vercel 함수 api/neis.js는 CommonJS로 유지한다.
 
 **기술:** HTML, CSS, 브라우저 ES modules, Node.js node:test, Vercel Serverless Function, NEIS Open API, Pretendard webfont.
 
@@ -27,17 +27,17 @@
 | index.html | 앱 마운트 지점, Pretendard와 CSS/JS 진입점 |
 | src/styles/tokens.css | 색상·글꼴·간격·그림자 토큰 |
 | src/styles/app.css | 3열/태블릿/모바일 레이아웃과 공통 컴포넌트 |
-| src/lib/school.js | 학교급 정규화, 학년 범위, 시간표 API 선택 |
-| src/lib/storage.js | 사용자 설정 읽기·검증·저장·기존 키 마이그레이션 |
-| src/lib/date.js | 날짜·월·주 이동과 오늘 비교 |
-| src/services/neis.js | 프록시 요청과 NEIS 응답 정규화 |
-| src/state/app-state.js | 상태 생성·변경·구독 |
-| src/components.js | 탐색, 날짜 도구막대, 상태 안내 공통 마크업 |
-| src/views/setup.js | 최초 역할·학교·학년반·알레르기 설정 |
-| src/views/dashboard.js | 역할별 오늘 카드와 다가오는 일정 |
-| src/views/modules.js | 일정·시간표·급식 상세 화면 |
-| src/views/settings.js | 역할·학교·학년반·알레르기 통합 변경 |
-| src/main.js | 초기화, 탐색 이벤트, 화면 렌더링 |
+| src/lib/school.mjs | 학교급 정규화, 학년 범위, 시간표 API 선택 |
+| src/lib/storage.mjs | 사용자 설정 읽기·검증·저장·기존 키 마이그레이션 |
+| src/lib/date.mjs | 날짜·월·주 이동과 오늘 비교 |
+| src/services/neis.mjs | 프록시 요청과 NEIS 응답 정규화 |
+| src/state/app-state.mjs | 상태 생성·변경·구독 |
+| src/components.mjs | 탐색, 날짜 도구막대, 상태 안내 공통 마크업 |
+| src/views/setup.mjs | 최초 역할·학교·학년반·알레르기 설정 |
+| src/views/dashboard.mjs | 역할별 오늘 카드와 다가오는 일정 |
+| src/views/modules.mjs | 일정·시간표·급식 상세 화면 |
+| src/views/settings.mjs | 역할·학교·학년반·알레르기 통합 변경 |
+| src/main.mjs | 초기화, 탐색 이벤트, 화면 렌더링 |
 | api/neis.js | 허용 NEIS 엔드포인트 서버 프록시 |
 | test/*.test.mjs | 순수 모듈과 프록시 정책 테스트 |
 | package.json | node --test 실행 스크립트 |
@@ -46,7 +46,7 @@
 
 **Files:**
 - Create: package.json
-- Create: src/lib/school.js
+- Create: src/lib/school.mjs
 - Create: test/school.test.mjs
 
 **Interfaces:**
@@ -61,7 +61,7 @@
 
     import test from 'node:test';
     import assert from 'node:assert/strict';
-    import { getGradeOptions, getTimetableEndpoint, isSupportedSchoolKind } from '../src/lib/school.js';
+import { getGradeOptions, getTimetableEndpoint, isSupportedSchoolKind } from '../src/lib/school.mjs';
 
     test('학교급별 시간표 API와 학년 범위를 선택한다', () => {
       assert.deepEqual(getGradeOptions('초등학교'), ['1', '2', '3', '4', '5', '6']);
@@ -74,7 +74,7 @@
 
 Run: npm test -- --test-name-pattern="학교급별"
 
-Expected: ERR_MODULE_NOT_FOUND because src/lib/school.js does not exist.
+Expected: ERR_MODULE_NOT_FOUND because src/lib/school.mjs does not exist.
 
 - [ ] **Step 4: 최소 규칙을 구현한다.**
 
@@ -93,13 +93,13 @@ Run: npm test
 
 Expected: all tests pass.
 
-    git add package.json src/lib/school.js test/school.test.mjs
+    git add package.json src/lib/school.mjs test/school.test.mjs
     git commit -m "feat: add school-level timetable rules"
 
 ## Task 2: 설정 저장과 첫 방문 상태
 
 **Files:**
-- Create: src/lib/storage.js
+- Create: src/lib/storage.mjs
 - Create: test/storage.test.mjs
 
 **Interfaces:**
@@ -138,14 +138,14 @@ Expected: 빈 문자열·0·음수 반은 불완전 상태이며, 구 키는 한
 
 - [ ] **Step 4: 커밋한다.**
 
-    git add src/lib/storage.js test/storage.test.mjs
+    git add src/lib/storage.mjs test/storage.test.mjs
     git commit -m "feat: persist complete school profile"
 
 ## Task 3: NEIS 프록시와 데이터 서비스 확장
 
 **Files:**
 - Modify: api/neis.js:1-43
-- Create: src/services/neis.js
+- Create: src/services/neis.mjs
 - Create: test/neis-policy.test.mjs
 
 **Interfaces:**
@@ -188,7 +188,7 @@ Run: npm test
 
 Expected: all tests pass; generated URLs never contain KEY=.
 
-    git add api/neis.js src/services/neis.js test/neis-policy.test.mjs
+    git add api/neis.js src/services/neis.mjs test/neis-policy.test.mjs
     git commit -m "feat: support middle and high school timetables"
 
 ## Task 4: 앱 셸과 반응형 디자인
@@ -197,9 +197,9 @@ Expected: all tests pass; generated URLs never contain KEY=.
 - Modify: index.html:1-1060
 - Create: src/styles/tokens.css
 - Create: src/styles/app.css
-- Create: src/components.js
-- Create: src/state/app-state.js
-- Create: src/main.js
+- Create: src/components.mjs
+- Create: src/state/app-state.mjs
+- Create: src/main.mjs
 
 **Interfaces:**
 - Produces: mountApp(container), renderAppShell(container), renderNavigation(activeView), renderStatusMessage(state).
@@ -207,7 +207,7 @@ Expected: all tests pass; generated URLs never contain KEY=.
 
 - [ ] **Step 1: 인라인 앱을 ES 모듈 진입점으로 바꾼다.**
 
-index.html에는 #app, Pretendard, 두 CSS 파일, type=module인 src/main.js만 남긴다. 기존 인라인 CSS·정적 화면·onclick·NEIS 요청 가로채기·NEIS_KEY 선언을 제거한다.
+index.html에는 #app, Pretendard, 두 CSS 파일, type=module인 src/main.mjs만 남긴다. 기존 인라인 CSS·정적 화면·onclick·NEIS 요청 가로채기·NEIS_KEY 선언을 제거한다.
 
 - [ ] **Step 2: 토큰과 보이는 포커스를 구현한다.**
 
@@ -231,16 +231,16 @@ Expected: 1920×1080은 1440px 3열, 390×844는 하단 메뉴가 있는 한 열
 
 - [ ] **Step 5: 커밋한다.**
 
-    git add index.html src/styles src/components.js src/state/app-state.js src/main.js
+    git add index.html src/styles src/components.mjs src/state/app-state.mjs src/main.mjs
     git commit -m "feat: build responsive school dashboard shell"
 
 ## Task 5: 최초 설정과 내 설정
 
 **Files:**
-- Create: src/views/setup.js
-- Create: src/views/settings.js
-- Modify: src/main.js
-- Modify: src/components.js
+- Create: src/views/setup.mjs
+- Create: src/views/settings.mjs
+- Modify: src/main.mjs
+- Modify: src/components.mjs
 
 **Interfaces:**
 - Produces: renderSetup(container, context), renderSettings(container, context).
@@ -272,15 +272,15 @@ Expected: 1920×1080은 1440px 3열, 390×844는 하단 메뉴가 있는 한 열
 
 Expected: 초등은 1~6학년, 중·고등은 1~3학년만 선택된다. 미완료 상태에서는 데이터 대시보드가 열리지 않는다.
 
-    git add src/views/setup.js src/views/settings.js src/main.js src/components.js
+    git add src/views/setup.mjs src/views/settings.mjs src/main.mjs src/components.mjs
     git commit -m "feat: add guided profile setup and settings"
 
 ## Task 6: 역할별 홈 대시보드와 상태 안내
 
 **Files:**
-- Create: src/views/dashboard.js
+- Create: src/views/dashboard.mjs
 - Create: test/dashboard.test.mjs
-- Modify: src/main.js
+- Modify: src/main.mjs
 - Modify: src/styles/app.css
 
 **Interfaces:**
@@ -315,15 +315,15 @@ Run: npm test
 
 Expected: all tests pass; 390px에서 역할별 첫 두 카드가 다가오는 일정보다 먼저 보인다.
 
-    git add src/views/dashboard.js test/dashboard.test.mjs src/main.js src/styles/app.css
+    git add src/views/dashboard.mjs test/dashboard.test.mjs src/main.mjs src/styles/app.css
     git commit -m "feat: add role-aware daily dashboard"
 
 ## Task 7: 일정·시간표·급식 상세 화면 일관화
 
 **Files:**
-- Create: src/views/modules.js
-- Modify: src/services/neis.js
-- Modify: src/main.js
+- Create: src/views/modules.mjs
+- Modify: src/services/neis.mjs
+- Modify: src/main.mjs
 - Modify: src/styles/app.css
 
 **Interfaces:**
@@ -350,7 +350,7 @@ Expected: all tests pass; 390px에서 역할별 첫 두 카드가 다가오는 �
 
 Expected: 날짜 이동, 오늘, 보기 전환, 달력 날짜 선택을 마우스·키보드 모두로 할 수 있고 390px 전체 페이지에는 가로 스크롤이 없다.
 
-    git add src/views/modules.js src/services/neis.js src/main.js src/styles/app.css
+    git add src/views/modules.mjs src/services/neis.mjs src/main.mjs src/styles/app.css
     git commit -m "feat: unify school information modules"
 
 ## Task 8: 회귀·접근성·배포 검증
