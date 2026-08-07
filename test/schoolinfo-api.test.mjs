@@ -122,3 +122,18 @@ test('SchoolInfo proxy normalizes an upstream data record', async () => {
 
   assert.deepEqual(response.body, { status: 'ok', schoolInfoId: 'SCH-data' });
 });
+
+test('SchoolInfo proxy normalizes an upstream data collection', async () => {
+  const handler = createSchoolInfoHandler({
+    env: {
+      SCHOOLINFO_API_KEY: 'server-secret',
+      SCHOOLINFO_API_URL: 'https://schoolinfo.example.test/search'
+    },
+    fetch: async () => new Response(JSON.stringify({ data: [{ SHL_IDF_CD: 'SCH-data-array' }] }), { status: 200 })
+  });
+  const response = createResponse();
+
+  await handler({ method: 'GET', query: { name: 'Seoul School' } }, response);
+
+  assert.deepEqual(response.body, { status: 'ok', schoolInfoId: 'SCH-data-array' });
+});

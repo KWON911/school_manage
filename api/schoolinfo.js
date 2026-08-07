@@ -28,7 +28,7 @@ function recordsFrom(body) {
   // to return a record (or a results/data/items/row array) with SHL_IDF_CD or
   // schoolInfoId; an optional detail URL is accepted only for schoolinfo.go.kr.
   const collections = [
-    body.results, body.items, body.row,
+    body.results, body.items, body.row, body.data,
     body.data?.results, body.data?.items, body.data?.row
   ];
   for (const collection of collections) {
