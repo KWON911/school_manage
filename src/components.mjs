@@ -37,7 +37,6 @@ const ICONS = {
 };
 
 const SCHOOL_ICON = `<svg class="brand-school-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-5h6v5M9 10h.01M15 10h.01"/></svg>`;
-const CHEVRON_ICON = '<svg class="school-switcher__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6"/></svg>';
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -57,10 +56,11 @@ export function renderNavigation(activeView) {
   `).join('');
 }
 
-function schoolSwitcher(className, schoolName) {
-  return `<button class="${className}" type="button" data-view="settings" data-settings-target="school" aria-label="${escapeHtml(schoolName)} 학교 변경">
-    <span>${escapeHtml(schoolName)}</span>${CHEVRON_ICON}
-  </button>`;
+function schoolSwitcher(className, schoolName, schoolInfoUrl) {
+  const label = `<span>${escapeHtml(schoolName)}</span>`;
+  if (!schoolInfoUrl) return `<span class="${className}">${label}</span>`;
+
+  return `<a class="${className}" href="${escapeHtml(schoolInfoUrl)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(schoolName)} 학교알리미 새 창">${label}</a>`;
 }
 
 export function renderStatusMessage(state) {
@@ -82,6 +82,7 @@ export function renderAppShell(container, activeView = 'home', options = {}) {
   const content = VIEW_CONTENT[view];
   const navigation = renderNavigation(view);
   const schoolName = options.schoolName ?? '학교 미설정';
+  const schoolInfoUrl = options.schoolInfoUrl ?? null;
   const mainContent = options.mainContent ?? `
     <div class="content-heading">
       <p>학교생활 대시보드</p>
@@ -100,7 +101,7 @@ export function renderAppShell(container, activeView = 'home', options = {}) {
           <span>학교생활</span>
         </div>
       </header>
-      <div class="compact-school-switcher">${schoolSwitcher('school-switcher', schoolName)}</div>
+      <div class="compact-school-switcher">${schoolSwitcher('school-switcher', schoolName, schoolInfoUrl)}</div>
 
       <div class="app-shell">
         <aside class="sidebar" aria-label="학교생활 탐색">
@@ -108,7 +109,7 @@ export function renderAppShell(container, activeView = 'home', options = {}) {
             ${SCHOOL_ICON}
             <strong>학교생활</strong>
           </div>
-          ${schoolSwitcher('school-switcher', schoolName)}
+          ${schoolSwitcher('school-switcher', schoolName, schoolInfoUrl)}
           <nav class="sidebar-navigation" aria-label="주요 메뉴">${navigation}</nav>
           <p class="sidebar-note">학교를 설정하면<br>오늘의 정보를 알려드려요.</p>
         </aside>

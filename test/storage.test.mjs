@@ -53,6 +53,25 @@ test('saves and reads the complete profile from eduHub_profile', () => {
   assert.deepEqual(readProfile(storage), profile);
 });
 
+test('preserves Schoolinfo link fields when saving and reading a profile', () => {
+  const storage = createStorage();
+  const profile = {
+    role: 'student',
+    school: {
+      name: '가나다고등학교',
+      kind: '고등학교',
+      schoolInfoId: 'SCH-123',
+      schoolInfoUrl: 'https://www.schoolinfo.go.kr/ei/ss/Pneiss_b01_s0.do?SHL_IDF_CD=SCH-123'
+    },
+    classSetting: { grade: '2', classNm: '3' },
+    allergies: []
+  };
+
+  saveProfile(storage, profile);
+
+  assert.deepEqual(readProfile(storage).school, profile.school);
+});
+
 test('treats malformed saved profiles as empty and clears a school without kind', () => {
   const malformed = createStorage({ eduHub_profile: '{not json' });
   const jsonNull = createStorage({ eduHub_profile: 'null' });
@@ -122,6 +141,29 @@ test('migrates legacy profile keys once when the school includes its kind', () =
 
   storage.setItem('eduHub_school', JSON.stringify({ name: '다른학교', kind: '고등학교' }));
   assert.equal(readProfile(storage).school.name, '가나다중학교');
+});
+
+test('preserves Schoolinfo link fields when migrating a legacy school profile', () => {
+  const storage = createStorage({
+    eduHub_school: JSON.stringify({
+      name: '가나다중학교',
+      kind: '중학교',
+      schoolInfoId: 'SCH-123',
+      schoolInfoUrl: 'https://www.schoolinfo.go.kr/ei/ss/Pneiss_b01_s0.do?SHL_IDF_CD=SCH-123'
+    }),
+    eduHub_classSetting: JSON.stringify({ grade: '1', classNm: '2' }),
+    eduHub_myAllergies: JSON.stringify([])
+  });
+
+  const profile = readProfile(storage);
+
+  assert.deepEqual(profile.school, {
+    name: '가나다중학교',
+    kind: '중학교',
+    schoolInfoId: 'SCH-123',
+    schoolInfoUrl: 'https://www.schoolinfo.go.kr/ei/ss/Pneiss_b01_s0.do?SHL_IDF_CD=SCH-123'
+  });
+  assert.deepEqual(JSON.parse(storage.getItem('eduHub_profile')).school, profile.school);
 });
 
 test('migrates legacy data once but clears a school without kind for reselection', () => {

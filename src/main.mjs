@@ -1,4 +1,5 @@
 import { renderAppShell } from './components.mjs';
+import { resolveSchoolInfoUrl } from './lib/schoolinfo.mjs';
 import { isProfileComplete, readProfile } from './lib/storage.mjs';
 import { createAppState } from './state/app-state.mjs';
 import { renderDashboard, renderDashboardLoadingMarkup } from './views/dashboard.mjs';
@@ -32,7 +33,10 @@ export function mountApp(container, options = {}) {
     }
 
     const activeView = state.activeView;
-    const shellOptions = { schoolName: profile.school?.name };
+    const shellOptions = {
+      schoolName: profile.school?.name,
+      schoolInfoUrl: resolveSchoolInfoUrl(profile.school)
+    };
     if (activeView === 'home') {
       shellOptions.mainContent = renderDashboardLoadingMarkup(profile);
     } else if (activeView === 'settings') {

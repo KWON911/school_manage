@@ -146,7 +146,10 @@ test('status messages escape content supplied by state', () => {
 test('app shell renders semantic content without the supporting sidebar', () => {
   const container = { innerHTML: '' };
 
-  renderAppShell(container, 'schedule', { schoolName: '가람중학교' });
+  renderAppShell(container, 'schedule', {
+    schoolName: '가람중학교',
+    schoolInfoUrl: 'https://www.schoolinfo.go.kr/ei/ss/Pneiss_b01_s0.do?SHL_IDF_CD=SCH-123'
+  });
 
   assert.match(container.innerHTML, /<main[^>]*id="main-content"/);
   assert.doesNotMatch(container.innerHTML, /<aside class="support-panel"/);
@@ -154,10 +157,43 @@ test('app shell renders semantic content without the supporting sidebar', () => 
   assert.match(container.innerHTML, /class="brand-school-icon"/);
   assert.match(container.innerHTML, /<div class="brand-lockup">\s*<svg class="brand-school-icon"[\s\S]*?<strong>학교생활<\/strong>\s*<\/div>/);
   assert.doesNotMatch(container.innerHTML, /오늘을 한눈에/);
-  assert.match(container.innerHTML, /class="school-switcher"[^>]*data-view="settings"[^>]*data-settings-target="school"/);
+  assert.equal((container.innerHTML.match(/class="school-switcher"/g) ?? []).length, 2);
+  assert.equal((container.innerHTML.match(/href="https:\/\/www\.schoolinfo\.go\.kr\/ei\/ss\/Pneiss_b01_s0\.do\?SHL_IDF_CD=SCH-123"/g) ?? []).length, 2);
+  assert.equal((container.innerHTML.match(/target="_blank" rel="noopener noreferrer"/g) ?? []).length, 2);
+  assert.equal((container.innerHTML.match(/aria-label="가람중학교 학교알리미 새 창"/g) ?? []).length, 2);
+  assert.doesNotMatch(container.innerHTML, /class="school-switcher"[^>]*data-view=/);
   assert.match(container.innerHTML, /가람중학교/);
   assert.match(container.innerHTML, /class="compact-school-switcher"/);
   assert.doesNotMatch(container.innerHTML, /compact-header__settings/);
+});
+
+test('mounted shell uses the Schoolinfo name search fallback for a named school', () => {
+  const container = {
+    innerHTML: '',
+    addEventListener() {},
+    querySelector() { return null; }
+  };
+  const profile = {
+    ...COMPLETE_PROFILE,
+    school: { ...COMPLETE_PROFILE.school, name: '서울 & 부산 초등학교' }
+  };
+
+  mountApp(container, { storage: createProfileStorage(profile) });
+
+  assert.match(
+    container.innerHTML,
+    /href="https:\/\/www\.schoolinfo\.go\.kr\/ei\/ss\/Pneiss_b01_s0\.do\?SHL_NM=%EC%84%9C%EC%9A%B8%20%26%20%EB%B6%80%EC%82%B0%20%EC%B4%88%EB%93%B1%ED%95%99%EA%B5%90"/
+  );
+});
+
+test('app shell leaves an unconfigured school label as text without an empty link', () => {
+  const container = { innerHTML: '' };
+
+  renderAppShell(container, 'schedule');
+
+  assert.match(container.innerHTML, /학교 미설정/);
+  assert.doesNotMatch(container.innerHTML, /class="school-switcher"[^>]*href=""/);
+  assert.doesNotMatch(container.innerHTML, /class="school-switcher"[^>]*data-view=/);
 });
 
 test('mounted shell changes view through delegated navigation clicks', () => {
