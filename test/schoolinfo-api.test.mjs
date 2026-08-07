@@ -107,3 +107,18 @@ test('SchoolInfo proxy converts malformed upstream data into a stable no-match r
   assert.equal(response.statusCode, 200);
   assert.deepEqual(response.body, { status: 'no-match' });
 });
+
+test('SchoolInfo proxy normalizes an upstream data record', async () => {
+  const handler = createSchoolInfoHandler({
+    env: {
+      SCHOOLINFO_API_KEY: 'server-secret',
+      SCHOOLINFO_API_URL: 'https://schoolinfo.example.test/search'
+    },
+    fetch: async () => new Response(JSON.stringify({ data: { SHL_IDF_CD: 'SCH-data' } }), { status: 200 })
+  });
+  const response = createResponse();
+
+  await handler({ method: 'GET', query: { name: 'Seoul School' } }, response);
+
+  assert.deepEqual(response.body, { status: 'ok', schoolInfoId: 'SCH-data' });
+});

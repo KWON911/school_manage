@@ -3,6 +3,7 @@ import { buildSchoolInfoDetailUrl } from '../lib/schoolinfo.mjs';
 
 const PROXY_PATH = '/api/neis';
 const SCHOOLINFO_PROXY_PATH = '/api/schoolinfo';
+const SCHOOLINFO_TIMEOUT_MS = 250;
 const EMPTY_ROWS = [];
 
 function createUrl(endpoint, params = {}) {
@@ -89,30 +90,27 @@ function nonEmptyString(value) {
 }
 
 async function enrichSchoolWithSchoolInfo(school) {
-  let response;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), SCHOOLINFO_TIMEOUT_MS);
   try {
-    response = await fetch(createSchoolInfoUrl(school));
+    const response = await fetch(createSchoolInfoUrl(school), { signal: controller.signal });
+    if (!response.ok) return school;
+    const body = await response.json();
+    if (body?.status !== 'ok') return school;
+
+    const schoolInfoId = nonEmptyString(body.schoolInfoId);
+    const schoolInfoUrl = nonEmptyString(body.schoolInfoUrl) ?? buildSchoolInfoDetailUrl(schoolInfoId);
+    if (!schoolInfoId && !schoolInfoUrl) return school;
+    return {
+      ...school,
+      ...(schoolInfoId ? { schoolInfoId } : {}),
+      ...(schoolInfoUrl ? { schoolInfoUrl } : {})
+    };
   } catch {
     return school;
+  } finally {
+    clearTimeout(timeout);
   }
-  if (!response.ok) return school;
-
-  let body;
-  try {
-    body = await response.json();
-  } catch {
-    return school;
-  }
-  if (body?.status !== 'ok') return school;
-
-  const schoolInfoId = nonEmptyString(body.schoolInfoId);
-  const schoolInfoUrl = nonEmptyString(body.schoolInfoUrl) ?? buildSchoolInfoDetailUrl(schoolInfoId);
-  if (!schoolInfoId && !schoolInfoUrl) return school;
-  return {
-    ...school,
-    ...(schoolInfoId ? { schoolInfoId } : {}),
-    ...(schoolInfoUrl ? { schoolInfoUrl } : {})
-  };
 }
 
 export function buildSchoolSearchUrl(query) {
@@ -161,10 +159,10 @@ export async function searchSchools(query) {
     ATPT_OFCDC_SC_CODE: school.ATPT_OFCDC_SC_CODE,
     SD_SCHUL_CODE: school.SD_SCHUL_CODE
   }));
-  const enrichedRows = [];
-  for (const school of rows) {
-    enrichedRows.push(await enrichSchoolWithSchoolInfo(school));
-  }
+  const enrichmentResults = await Promise.allSettled(rows.map(enrichSchoolWithSchoolInfo));
+  const enrichedRows = enrichmentResults.map((result, index) => (
+    result.status === 'fulfilled' ? result.value : rows[index]
+  ));
   return {
     status: 'ok',
     rows: enrichedRows

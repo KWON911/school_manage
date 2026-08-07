@@ -136,6 +136,72 @@ test('keeps the normalized NEIS school row when SchoolInfo enrichment fails', as
   }
 });
 
+test('returns the NEIS row after aborting a stalled SchoolInfo lookup', async () => {
+  const { searchSchools } = await import('../src/services/neis.mjs');
+  const originalFetch = globalThis.fetch;
+  let lookupWasAborted = false;
+  globalThis.fetch = async (url, options) => {
+    if (String(url).startsWith('/api/neis?')) {
+      return new Response(JSON.stringify({
+        schoolInfo: [{ head: [] }, { row: [{
+          SCHUL_NM: '\uAC00\uB78C\uC911\uD559\uAD50', SCHUL_KND_SC_NM: '\uC911\uD559\uAD50',
+          LCTN_SC_NM: '\uC11C\uC6B8', ORG_RDNMA: '\uC11C\uC6B8\uC2DC \uAC00\uB78C\uB85C 1',
+          ATPT_OFCDC_SC_CODE: 'B10', SD_SCHUL_CODE: '2'
+        }] }]
+      }), { status: 200 });
+    }
+    return new Promise((resolve, reject) => {
+      options.signal.addEventListener('abort', () => {
+        lookupWasAborted = true;
+        reject(new DOMException('Timed out', 'AbortError'));
+      }, { once: true });
+    });
+  };
+
+  try {
+    const result = await Promise.race([
+      searchSchools('\uAC00\uB78C'),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('SchoolInfo lookup did not time out')), 500))
+    ]);
+    assert.equal(lookupWasAborted, true);
+    assert.deepEqual(result.rows[0], {
+      name: '\uAC00\uB78C\uC911\uD559\uAD50', kind: '\uC911\uD559\uAD50', area: '\uC11C\uC6B8', address: '\uC11C\uC6B8\uC2DC \uAC00\uB78C\uB85C 1',
+      ATPT_OFCDC_SC_CODE: 'B10', SD_SCHUL_CODE: '2'
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('starts SchoolInfo enrichment for every NEIS row without serial waits', async () => {
+  const { searchSchools } = await import('../src/services/neis.mjs');
+  const originalFetch = globalThis.fetch;
+  const pendingLookups = [];
+  globalThis.fetch = async (url) => {
+    if (String(url).startsWith('/api/neis?')) {
+      return new Response(JSON.stringify({
+        schoolInfo: [{ head: [] }, { row: [
+          { SCHUL_NM: '\uAC00\uB78C\uC911\uD559\uAD50', SCHUL_KND_SC_NM: '\uC911\uD559\uAD50', LCTN_SC_NM: '\uC11C\uC6B8', ORG_RDNMA: 'A', ATPT_OFCDC_SC_CODE: 'B10', SD_SCHUL_CODE: '2' },
+          { SCHUL_NM: '\uB098\uB8E8\uACE0\uB4F1\uD559\uAD50', SCHUL_KND_SC_NM: '\uACE0\uB4F1\uD559\uAD50', LCTN_SC_NM: '\uC11C\uC6B8', ORG_RDNMA: 'B', ATPT_OFCDC_SC_CODE: 'B10', SD_SCHUL_CODE: '3' }
+        ] }]
+      }), { status: 200 });
+    }
+    return new Promise((resolve) => pendingLookups.push(resolve));
+  };
+
+  try {
+    const search = searchSchools('\uD559\uAD50');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.equal(pendingLookups.length, 2);
+    pendingLookups[0](new Response(JSON.stringify({ status: 'ok', schoolInfoId: 'SCH-2' }), { status: 200 }));
+    pendingLookups[1](new Response(JSON.stringify({ status: 'ok', schoolInfoId: 'SCH-3' }), { status: 200 }));
+    const result = await search;
+    assert.deepEqual(result.rows.map((school) => school.schoolInfoId), ['SCH-2', 'SCH-3']);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('does not attempt school search when the app is opened as a local file', async () => {
   const { searchSchools } = await import('../src/services/neis.mjs');
   const originalFetch = globalThis.fetch;
