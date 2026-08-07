@@ -24,6 +24,12 @@ const middleSchool = {
   SD_SCHUL_CODE: '7010001'
 };
 
+const enrichedMiddleSchool = {
+  ...middleSchool,
+  schoolInfoId: 'S1234567',
+  schoolInfoUrl: 'https://www.schoolinfo.go.kr/ei/ss/Pneiss_b01_s0.do?HG_CD=S1234567'
+};
+
 const completeDraft = {
   role: 'student',
   school: middleSchool,
@@ -112,6 +118,26 @@ test('selecting a different school clears the previous grade and class', () => {
   assert.deepEqual(selectSchool(completeDraft, nextSchool), {
     ...completeDraft,
     school: nextSchool,
+    classSetting: null
+  });
+});
+
+test('setup selection and completion preserve optional SchoolInfo fields while changing schools still resets class', () => {
+  const draftWithEnrichedSchool = {
+    ...completeDraft,
+    school: enrichedMiddleSchool
+  };
+  const changedSchool = {
+    ...enrichedMiddleSchool,
+    name: '?쒕튆以묓븰援?',
+    SD_SCHUL_CODE: '7010009'
+  };
+
+  assert.deepEqual(selectSchool(draftWithEnrichedSchool, enrichedMiddleSchool), draftWithEnrichedSchool);
+  assert.deepEqual(createProfileCandidate(draftWithEnrichedSchool), draftWithEnrichedSchool);
+  assert.deepEqual(selectSchool(draftWithEnrichedSchool, changedSchool), {
+    ...draftWithEnrichedSchool,
+    school: changedSchool,
     classSetting: null
   });
 });
@@ -249,6 +275,30 @@ test('saving a changed school clears cached view data and persists only the comp
     clearViewData() { clearCount += 1; }
   }), null);
   assert.equal(clearCount, 1);
+});
+
+test('settings saves optional SchoolInfo fields after unrelated edits', () => {
+  const entries = new Map();
+  const storage = {
+    getItem(key) { return entries.get(key) ?? null; },
+    setItem(key, value) { entries.set(key, String(value)); }
+  };
+  const previousProfile = {
+    ...completeDraft,
+    school: enrichedMiddleSchool
+  };
+  const draft = {
+    ...previousProfile,
+    allergies: ['6']
+  };
+
+  assert.deepEqual(persistSettingsProfile({
+    storage,
+    previousProfile,
+    draft,
+    clearViewData() { throw new Error('unchanged school must not clear view data'); }
+  }), { profile: draft, schoolChanged: false });
+  assert.deepEqual(JSON.parse(entries.get('eduHub_profile')), draft);
 });
 
 test('settings success feedback always uses the shared confirmation message', () => {
