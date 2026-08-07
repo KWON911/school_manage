@@ -60,7 +60,7 @@ function schoolSwitcher(className, schoolName, schoolInfoUrl) {
   const label = `<span>${escapeHtml(schoolName)}</span>`;
   if (!schoolInfoUrl) return `<span class="${className}">${label}</span>`;
 
-  return `<a class="${className}" href="${escapeHtml(schoolInfoUrl)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(schoolName)} 학교알리미 새 창">${label}</a>`;
+  return `<a class="${className}" href="${escapeHtml(schoolInfoUrl)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(schoolName)} 학교알리미 새 탭에서 열기">${label}</a>`;
 }
 
 export function renderStatusMessage(state) {

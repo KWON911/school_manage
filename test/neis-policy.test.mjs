@@ -80,6 +80,7 @@ test('normalizes school search rows into the profile school shape', async () => 
 test('enriches normalized NEIS school rows with a SchoolInfo identifier', async () => {
   const { searchSchools } = await import('../src/services/neis.mjs');
   const originalFetch = globalThis.fetch;
+  let resolverUrl;
   globalThis.fetch = async (url) => {
     if (String(url).startsWith('/api/neis?')) {
       return new Response(JSON.stringify({
@@ -90,6 +91,7 @@ test('enriches normalized NEIS school rows with a SchoolInfo identifier', async 
         }] }]
       }), { status: 200 });
     }
+    resolverUrl = new URL(String(url), 'https://app.example');
     return new Response(JSON.stringify({ status: 'ok', schoolInfoId: 'SCH-2' }), { status: 200 });
   };
 
@@ -102,6 +104,7 @@ test('enriches normalized NEIS school rows with a SchoolInfo identifier', async 
         schoolInfoUrl: 'https://www.schoolinfo.go.kr/ei/ss/Pneiss_b01_s0.do?SHL_IDF_CD=SCH-2'
       }]
     });
+    assert.equal(resolverUrl.searchParams.get('kind'), '\uC911\uD559\uAD50');
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -159,11 +162,15 @@ test('returns the NEIS row after aborting a stalled SchoolInfo lookup', async ()
   };
 
   try {
+    const startedAt = Date.now();
     const result = await Promise.race([
       searchSchools('\uAC00\uB78C'),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('SchoolInfo lookup did not time out')), 500))
+      new Promise((_, reject) => setTimeout(() => reject(new Error('SchoolInfo lookup did not time out')), 2200))
     ]);
+    const elapsedMs = Date.now() - startedAt;
     assert.equal(lookupWasAborted, true);
+    assert.ok(elapsedMs >= 1200, `lookup aborted too aggressively after ${elapsedMs} ms`);
+    assert.ok(elapsedMs < 2100, `lookup exceeded its deadline after ${elapsedMs} ms`);
     assert.deepEqual(result.rows[0], {
       name: '\uAC00\uB78C\uC911\uD559\uAD50', kind: '\uC911\uD559\uAD50', area: '\uC11C\uC6B8', address: '\uC11C\uC6B8\uC2DC \uAC00\uB78C\uB85C 1',
       ATPT_OFCDC_SC_CODE: 'B10', SD_SCHUL_CODE: '2'
@@ -173,7 +180,7 @@ test('returns the NEIS row after aborting a stalled SchoolInfo lookup', async ()
   }
 });
 
-test('starts SchoolInfo enrichment for every NEIS row without serial waits', async () => {
+test('limits SchoolInfo enrichment to four concurrent lookups', async () => {
   const { searchSchools } = await import('../src/services/neis.mjs');
   const originalFetch = globalThis.fetch;
   const pendingLookups = [];
@@ -181,8 +188,12 @@ test('starts SchoolInfo enrichment for every NEIS row without serial waits', asy
     if (String(url).startsWith('/api/neis?')) {
       return new Response(JSON.stringify({
         schoolInfo: [{ head: [] }, { row: [
-          { SCHUL_NM: '\uAC00\uB78C\uC911\uD559\uAD50', SCHUL_KND_SC_NM: '\uC911\uD559\uAD50', LCTN_SC_NM: '\uC11C\uC6B8', ORG_RDNMA: 'A', ATPT_OFCDC_SC_CODE: 'B10', SD_SCHUL_CODE: '2' },
-          { SCHUL_NM: '\uB098\uB8E8\uACE0\uB4F1\uD559\uAD50', SCHUL_KND_SC_NM: '\uACE0\uB4F1\uD559\uAD50', LCTN_SC_NM: '\uC11C\uC6B8', ORG_RDNMA: 'B', ATPT_OFCDC_SC_CODE: 'B10', SD_SCHUL_CODE: '3' }
+          { SCHUL_NM: '1\uBC88\uD559\uAD50', SCHUL_KND_SC_NM: '\uC911\uD559\uAD50', LCTN_SC_NM: '\uC11C\uC6B8', ORG_RDNMA: 'A', ATPT_OFCDC_SC_CODE: 'B10', SD_SCHUL_CODE: '1' },
+          { SCHUL_NM: '2\uBC88\uD559\uAD50', SCHUL_KND_SC_NM: '\uC911\uD559\uAD50', LCTN_SC_NM: '\uC11C\uC6B8', ORG_RDNMA: 'B', ATPT_OFCDC_SC_CODE: 'B10', SD_SCHUL_CODE: '2' },
+          { SCHUL_NM: '3\uBC88\uD559\uAD50', SCHUL_KND_SC_NM: '\uC911\uD559\uAD50', LCTN_SC_NM: '\uC11C\uC6B8', ORG_RDNMA: 'C', ATPT_OFCDC_SC_CODE: 'B10', SD_SCHUL_CODE: '3' },
+          { SCHUL_NM: '4\uBC88\uD559\uAD50', SCHUL_KND_SC_NM: '\uC911\uD559\uAD50', LCTN_SC_NM: '\uC11C\uC6B8', ORG_RDNMA: 'D', ATPT_OFCDC_SC_CODE: 'B10', SD_SCHUL_CODE: '4' },
+          { SCHUL_NM: '5\uBC88\uD559\uAD50', SCHUL_KND_SC_NM: '\uC911\uD559\uAD50', LCTN_SC_NM: '\uC11C\uC6B8', ORG_RDNMA: 'E', ATPT_OFCDC_SC_CODE: 'B10', SD_SCHUL_CODE: '5' },
+          { SCHUL_NM: '6\uBC88\uD559\uAD50', SCHUL_KND_SC_NM: '\uC911\uD559\uAD50', LCTN_SC_NM: '\uC11C\uC6B8', ORG_RDNMA: 'F', ATPT_OFCDC_SC_CODE: 'B10', SD_SCHUL_CODE: '6' }
         ] }]
       }), { status: 200 });
     }
@@ -192,11 +203,22 @@ test('starts SchoolInfo enrichment for every NEIS row without serial waits', asy
   try {
     const search = searchSchools('\uD559\uAD50');
     await new Promise((resolve) => setTimeout(resolve, 20));
-    assert.equal(pendingLookups.length, 2);
-    pendingLookups[0](new Response(JSON.stringify({ status: 'ok', schoolInfoId: 'SCH-2' }), { status: 200 }));
-    pendingLookups[1](new Response(JSON.stringify({ status: 'ok', schoolInfoId: 'SCH-3' }), { status: 200 }));
+    assert.equal(pendingLookups.length, 4);
+    pendingLookups[0](new Response(JSON.stringify({ status: 'ok', schoolInfoId: 'SCH-1' }), { status: 200 }));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.equal(pendingLookups.length, 5);
+    pendingLookups[1](new Response(JSON.stringify({ status: 'ok', schoolInfoId: 'SCH-2' }), { status: 200 }));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.equal(pendingLookups.length, 6);
+    for (let index = 2; index < 6; index += 1) {
+      pendingLookups[index](new Response(JSON.stringify({
+        status: 'ok', schoolInfoId: `SCH-${index + 1}`
+      }), { status: 200 }));
+    }
     const result = await search;
-    assert.deepEqual(result.rows.map((school) => school.schoolInfoId), ['SCH-2', 'SCH-3']);
+    assert.deepEqual(result.rows.map((school) => school.schoolInfoId), [
+      'SCH-1', 'SCH-2', 'SCH-3', 'SCH-4', 'SCH-5', 'SCH-6'
+    ]);
   } finally {
     globalThis.fetch = originalFetch;
   }

@@ -3,7 +3,8 @@ import { buildSchoolInfoDetailUrl } from '../lib/schoolinfo.mjs';
 
 const PROXY_PATH = '/api/neis';
 const SCHOOLINFO_PROXY_PATH = '/api/schoolinfo';
-const SCHOOLINFO_TIMEOUT_MS = 250;
+const SCHOOLINFO_TIMEOUT_MS = 1500;
+const SCHOOLINFO_CONCURRENCY = 4;
 const EMPTY_ROWS = [];
 
 function createUrl(endpoint, params = {}) {
@@ -75,6 +76,7 @@ function createSchoolInfoUrl(school) {
   const query = new URLSearchParams();
   const values = {
     name: school?.name,
+    kind: school?.kind,
     area: school?.area,
     address: school?.address,
     neisCode: school?.SD_SCHUL_CODE
@@ -111,6 +113,21 @@ async function enrichSchoolWithSchoolInfo(school) {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function enrichSchoolsWithSchoolInfo(schools) {
+  const enriched = new Array(schools.length);
+  let nextIndex = 0;
+  const worker = async () => {
+    while (nextIndex < schools.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      enriched[index] = await enrichSchoolWithSchoolInfo(schools[index]);
+    }
+  };
+  const workerCount = Math.min(SCHOOLINFO_CONCURRENCY, schools.length);
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  return enriched;
 }
 
 export function buildSchoolSearchUrl(query) {
@@ -159,13 +176,9 @@ export async function searchSchools(query) {
     ATPT_OFCDC_SC_CODE: school.ATPT_OFCDC_SC_CODE,
     SD_SCHUL_CODE: school.SD_SCHUL_CODE
   }));
-  const enrichmentResults = await Promise.allSettled(rows.map(enrichSchoolWithSchoolInfo));
-  const enrichedRows = enrichmentResults.map((result, index) => (
-    result.status === 'fulfilled' ? result.value : rows[index]
-  ));
   return {
     status: 'ok',
-    rows: enrichedRows
+    rows: await enrichSchoolsWithSchoolInfo(rows)
   };
 }
 

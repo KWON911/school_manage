@@ -160,7 +160,7 @@ test('app shell renders semantic content without the supporting sidebar', () => 
   assert.equal((container.innerHTML.match(/class="school-switcher"/g) ?? []).length, 2);
   assert.equal((container.innerHTML.match(/href="https:\/\/www\.schoolinfo\.go\.kr\/ei\/ss\/Pneiss_b01_s0\.do\?SHL_IDF_CD=SCH-123"/g) ?? []).length, 2);
   assert.equal((container.innerHTML.match(/target="_blank" rel="noopener noreferrer"/g) ?? []).length, 2);
-  assert.equal((container.innerHTML.match(/aria-label="가람중학교 학교알리미 새 창"/g) ?? []).length, 2);
+  assert.equal((container.innerHTML.match(/aria-label="가람중학교 학교알리미 새 탭에서 열기"/g) ?? []).length, 2);
   assert.doesNotMatch(container.innerHTML, /class="school-switcher"[^>]*data-view=/);
   assert.match(container.innerHTML, /가람중학교/);
   assert.match(container.innerHTML, /class="compact-school-switcher"/);
@@ -182,7 +182,7 @@ test('mounted shell uses the Schoolinfo name search fallback for a named school'
 
   assert.match(
     container.innerHTML,
-    /href="https:\/\/www\.schoolinfo\.go\.kr\/ei\/ss\/Pneiss_b01_s0\.do\?SHL_NM=%EC%84%9C%EC%9A%B8%20%26%20%EB%B6%80%EC%82%B0%20%EC%B4%88%EB%93%B1%ED%95%99%EA%B5%90"/
+    /href="https:\/\/www\.schoolinfo\.go\.kr\/ei\/ss\/Pneiss_f01_l0\.do\?SEARCH_KEYWORD=%EC%84%9C%EC%9A%B8\+%26\+%EB%B6%80%EC%82%B0\+%EC%B4%88%EB%93%B1%ED%95%99%EA%B5%90&amp;SEARCH_SCHUL_NM=%EC%84%9C%EC%9A%B8\+%26\+%EB%B6%80%EC%82%B0\+%EC%B4%88%EB%93%B1%ED%95%99%EA%B5%90"/
   );
 });
 

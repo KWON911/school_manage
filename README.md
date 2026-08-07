@@ -18,3 +18,17 @@ such variables are included in the browser bundle.
 
 GitHub Pages can only host static files, so it cannot safely hold this key. Use
 Vercel (or another host that runs the `/api/neis` server route) for this version.
+
+## SchoolInfo key setup
+
+The optional SchoolInfo enrichment uses the server-side `/api/schoolinfo` route.
+Set `SCHOOLINFO_API_KEY` in the same Vercel environments (and in `.env.local`
+for local development). The browser never receives this key. When enrichment
+cannot identify one exact school, the app keeps the NEIS result and opens the
+official SchoolInfo name-search page instead of guessing a detail page.
+
+The proxy defaults to `https://www.schoolinfo.go.kr/openApi.do`. You normally do
+not need `SCHOOLINFO_API_URL`; if an official SchoolInfo deployment requires an
+alternate endpoint, set it to an HTTPS URL on `schoolinfo.go.kr` or one of its
+subdomains. Other hosts and plain HTTP URLs are rejected before the API key is
+attached.
