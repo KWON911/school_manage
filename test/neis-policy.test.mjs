@@ -77,6 +77,65 @@ test('normalizes school search rows into the profile school shape', async () => 
   }
 });
 
+test('enriches normalized NEIS school rows with a SchoolInfo identifier', async () => {
+  const { searchSchools } = await import('../src/services/neis.mjs');
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    if (String(url).startsWith('/api/neis?')) {
+      return new Response(JSON.stringify({
+        schoolInfo: [{ head: [] }, { row: [{
+          SCHUL_NM: '\uAC00\uB78C\uC911\uD559\uAD50', SCHUL_KND_SC_NM: '\uC911\uD559\uAD50',
+          LCTN_SC_NM: '\uC11C\uC6B8', ORG_RDNMA: '\uC11C\uC6B8\uC2DC \uAC00\uB78C\uB85C 1',
+          ATPT_OFCDC_SC_CODE: 'B10', SD_SCHUL_CODE: '2'
+        }] }]
+      }), { status: 200 });
+    }
+    return new Response(JSON.stringify({ status: 'ok', schoolInfoId: 'SCH-2' }), { status: 200 });
+  };
+
+  try {
+    assert.deepEqual(await searchSchools('\uAC00\uB78C'), {
+      status: 'ok',
+      rows: [{
+        name: '\uAC00\uB78C\uC911\uD559\uAD50', kind: '\uC911\uD559\uAD50', area: '\uC11C\uC6B8', address: '\uC11C\uC6B8\uC2DC \uAC00\uB78C\uB85C 1',
+        ATPT_OFCDC_SC_CODE: 'B10', SD_SCHUL_CODE: '2', schoolInfoId: 'SCH-2',
+        schoolInfoUrl: 'https://www.schoolinfo.go.kr/ei/ss/Pneiss_b01_s0.do?SHL_IDF_CD=SCH-2'
+      }]
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('keeps the normalized NEIS school row when SchoolInfo enrichment fails', async () => {
+  const { searchSchools } = await import('../src/services/neis.mjs');
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    if (String(url).startsWith('/api/neis?')) {
+      return new Response(JSON.stringify({
+        schoolInfo: [{ head: [] }, { row: [{
+          SCHUL_NM: '\uAC00\uB78C\uC911\uD559\uAD50', SCHUL_KND_SC_NM: '\uC911\uD559\uAD50',
+          LCTN_SC_NM: '\uC11C\uC6B8', ORG_RDNMA: '\uC11C\uC6B8\uC2DC \uAC00\uB78C\uB85C 1',
+          ATPT_OFCDC_SC_CODE: 'B10', SD_SCHUL_CODE: '2'
+        }] }]
+      }), { status: 200 });
+    }
+    throw new Error('SchoolInfo unavailable');
+  };
+
+  try {
+    assert.deepEqual(await searchSchools('\uAC00\uB78C'), {
+      status: 'ok',
+      rows: [{
+        name: '\uAC00\uB78C\uC911\uD559\uAD50', kind: '\uC911\uD559\uAD50', area: '\uC11C\uC6B8', address: '\uC11C\uC6B8\uC2DC \uAC00\uB78C\uB85C 1',
+        ATPT_OFCDC_SC_CODE: 'B10', SD_SCHUL_CODE: '2'
+      }]
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('does not attempt school search when the app is opened as a local file', async () => {
   const { searchSchools } = await import('../src/services/neis.mjs');
   const originalFetch = globalThis.fetch;

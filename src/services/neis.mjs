@@ -1,6 +1,8 @@
 import { getTimetableEndpoint } from '../lib/school.mjs';
+import { buildSchoolInfoDetailUrl } from '../lib/schoolinfo.mjs';
 
 const PROXY_PATH = '/api/neis';
+const SCHOOLINFO_PROXY_PATH = '/api/schoolinfo';
 const EMPTY_ROWS = [];
 
 function createUrl(endpoint, params = {}) {
@@ -68,6 +70,51 @@ function schoolParams(school) {
   };
 }
 
+function createSchoolInfoUrl(school) {
+  const query = new URLSearchParams();
+  const values = {
+    name: school?.name,
+    area: school?.area,
+    address: school?.address,
+    neisCode: school?.SD_SCHUL_CODE
+  };
+  for (const [name, value] of Object.entries(values)) {
+    if (typeof value === 'string' && value.length > 0) query.set(name, value);
+  }
+  return `${SCHOOLINFO_PROXY_PATH}?${query}`;
+}
+
+function nonEmptyString(value) {
+  return typeof value === 'string' ? value.trim() || null : null;
+}
+
+async function enrichSchoolWithSchoolInfo(school) {
+  let response;
+  try {
+    response = await fetch(createSchoolInfoUrl(school));
+  } catch {
+    return school;
+  }
+  if (!response.ok) return school;
+
+  let body;
+  try {
+    body = await response.json();
+  } catch {
+    return school;
+  }
+  if (body?.status !== 'ok') return school;
+
+  const schoolInfoId = nonEmptyString(body.schoolInfoId);
+  const schoolInfoUrl = nonEmptyString(body.schoolInfoUrl) ?? buildSchoolInfoDetailUrl(schoolInfoId);
+  if (!schoolInfoId && !schoolInfoUrl) return school;
+  return {
+    ...school,
+    ...(schoolInfoId ? { schoolInfoId } : {}),
+    ...(schoolInfoUrl ? { schoolInfoUrl } : {})
+  };
+}
+
 export function buildSchoolSearchUrl(query) {
   return createUrl('schoolInfo', { SCHUL_NM: query });
 }
@@ -106,16 +153,21 @@ export function buildMealsUrl(school, yearMonth) {
 export async function searchSchools(query) {
   const result = await requestRows('schoolInfo', { SCHUL_NM: query });
   if (result.status !== 'ok') return result;
+  const rows = result.rows.map((school) => ({
+    name: school.SCHUL_NM,
+    kind: school.SCHUL_KND_SC_NM,
+    area: school.LCTN_SC_NM,
+    address: school.ORG_RDNMA,
+    ATPT_OFCDC_SC_CODE: school.ATPT_OFCDC_SC_CODE,
+    SD_SCHUL_CODE: school.SD_SCHUL_CODE
+  }));
+  const enrichedRows = [];
+  for (const school of rows) {
+    enrichedRows.push(await enrichSchoolWithSchoolInfo(school));
+  }
   return {
     status: 'ok',
-    rows: result.rows.map((school) => ({
-      name: school.SCHUL_NM,
-      kind: school.SCHUL_KND_SC_NM,
-      area: school.LCTN_SC_NM,
-      address: school.ORG_RDNMA,
-      ATPT_OFCDC_SC_CODE: school.ATPT_OFCDC_SC_CODE,
-      SD_SCHUL_CODE: school.SD_SCHUL_CODE
-    }))
+    rows: enrichedRows
   };
 }
 
