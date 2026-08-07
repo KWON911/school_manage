@@ -3,14 +3,14 @@
 ## Scope
 
 - Added regression coverage only in `test/profile-views.test.mjs`.
-- Inspected `src/views/setup.mjs` and `src/views/settings.mjs`; no production change was needed because `selectSchool`, `createProfileCandidate`, and `persistSettingsProfile` already retain the selected school object unchanged.
+- Inspected `src/views/setup.mjs` and `src/views/settings.mjs`; no production change was needed because `createDraft`, `selectSchool`, `createProfileCandidate`, and `persistSettingsProfile` already retain the selected school object unchanged.
 
 ## TDD evidence
 
 - Added the behavioral regression tests before making any production change.
-- Mutation check: temporarily removed `schoolInfoId` and `schoolInfoUrl` during profile creation, then ran `npm.cmd test -- test/profile-views.test.mjs`; the two new regressions failed specifically because those fields were absent (15 passed, 2 failed). The temporary mutation was restored.
+- Mutation check: temporarily removed `schoolInfoId` and `schoolInfoUrl` during profile creation and draft creation. Each focused test run failed specifically because those fields were absent; the draft-creation mutation produced 16 passed and 1 failed. Both temporary mutations were restored.
 - The restored focused run passed, demonstrating the existing implementation already met the new preservation contract; therefore no production implementation step was required.
-- The setup test verifies selection and profile completion retain literal `schoolInfoId` and `schoolInfoUrl`, while selecting a different school still clears the grade/class setting.
+- The setup test verifies draft creation, selection, and profile completion retain literal `schoolInfoId` and `schoolInfoUrl`, while selecting a different school still clears the grade/class setting.
 - The settings test verifies an unrelated allergy edit saves the exact enriched school object and does not treat the school as changed.
 
 ## Commands and results

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  createDraft,
   createProfileCandidate,
   renderGradeOptions,
   renderSchoolResults,
@@ -133,6 +134,7 @@ test('setup selection and completion preserve optional SchoolInfo fields while c
     SD_SCHUL_CODE: '7010009'
   };
 
+  assert.deepEqual(createDraft(draftWithEnrichedSchool).school, enrichedMiddleSchool);
   assert.deepEqual(selectSchool(draftWithEnrichedSchool, enrichedMiddleSchool), draftWithEnrichedSchool);
   assert.deepEqual(createProfileCandidate(draftWithEnrichedSchool), draftWithEnrichedSchool);
   assert.deepEqual(selectSchool(draftWithEnrichedSchool, changedSchool), {
