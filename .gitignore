@@ -3,3 +3,4 @@
 .vercel
 .worktrees
 .env*
+node_modules/

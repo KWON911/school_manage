@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const { createSchoolInfoHandler } = require('../api/schoolinfo.js');
+const { createSchoolInfoSearchHandler } = require('../api/schoolinfo-search.js');
 
 function createResponse() {
   const headers = new Map();
@@ -21,9 +22,22 @@ function createResponse() {
     json(body) {
       this.body = body;
       return this;
+    },
+    end() {
+      return this;
     }
   };
 }
+
+test('SchoolInfo search redirect encodes Korean names for the EUC-KR upstream', async () => {
+  const response = createResponse();
+  const handler = createSchoolInfoSearchHandler();
+
+  await handler({ method: 'GET', query: { name: '인천예송초등학교' } }, response);
+
+  assert.equal(response.statusCode, 302);
+  assert.equal(response.headers.get('location'), 'https://www.schoolinfo.go.kr/ei/ss/Pneiss_f01_l0.do?SEARCH_KEYWORD=%C0%CE%C3%B5%BF%B9%BC%DB%C3%CA%B5%EE%C7%D0%B1%B3&SEARCH_SCHUL_NM=%C0%CE%C3%B5%BF%B9%BC%DB%C3%CA%B5%EE%C7%D0%B1%B3');
+});
 
 async function request(handler, query = {}) {
   const response = createResponse();

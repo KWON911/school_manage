@@ -1,5 +1,5 @@
 const DETAIL_URL = 'https://www.schoolinfo.go.kr/ei/ss/Pneiss_b01_s0.do';
-const SEARCH_URL = 'https://www.schoolinfo.go.kr/ei/ss/Pneiss_f01_l0.do';
+const SEARCH_URL = '/api/schoolinfo-search';
 
 const normalizeNonEmptyString = (value) => (
   typeof value === 'string' ? value.trim() || null : null
@@ -12,11 +12,7 @@ export const buildSchoolInfoDetailUrl = (id) => {
 
 export const buildSchoolInfoSearchUrl = (name) => {
   const normalizedName = normalizeNonEmptyString(name) ?? '';
-  const query = new URLSearchParams({
-    SEARCH_KEYWORD: normalizedName,
-    SEARCH_SCHUL_NM: normalizedName
-  });
-  return `${SEARCH_URL}?${query}`;
+  return `${SEARCH_URL}?name=${encodeURIComponent(normalizedName)}`;
 };
 
 const verifiedSchoolInfoUrl = (value) => {

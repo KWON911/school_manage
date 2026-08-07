@@ -182,7 +182,7 @@ test('mounted shell uses the Schoolinfo name search fallback for a named school'
 
   assert.match(
     container.innerHTML,
-    /href="https:\/\/www\.schoolinfo\.go\.kr\/ei\/ss\/Pneiss_f01_l0\.do\?SEARCH_KEYWORD=%EC%84%9C%EC%9A%B8\+%26\+%EB%B6%80%EC%82%B0\+%EC%B4%88%EB%93%B1%ED%95%99%EA%B5%90&amp;SEARCH_SCHUL_NM=%EC%84%9C%EC%9A%B8\+%26\+%EB%B6%80%EC%82%B0\+%EC%B4%88%EB%93%B1%ED%95%99%EA%B5%90"/
+    /href="\/api\/schoolinfo-search\?name=%EC%84%9C%EC%9A%B8%20%26%20%EB%B6%80%EC%82%B0%20%EC%B4%88%EB%93%B1%ED%95%99%EA%B5%90"/
   );
 });
 
