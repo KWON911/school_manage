@@ -192,8 +192,8 @@ test('full schedule combines personal calendar events with school events in list
 
   assert.match(container.innerHTML, /개학/);
   assert.match(container.innerHTML, /치과 검진/);
-  assert.match(container.innerHTML, /학교 일정/);
-  assert.match(container.innerHTML, /개인 일정/);
+  assert.match(container.innerHTML, /neis/);
+  assert.match(container.innerHTML, /Google/);
 
   container.fire('click', target({ mode: 'calendar' }));
   container.fire('click', target({ date: '20260804' }));

@@ -112,12 +112,12 @@ function calendarDateKey(value) {
 }
 
 function combinedScheduleResult(schedule, calendar) {
-  const schoolRows = schedule.status === 'ok' ? (schedule.rows ?? []).map((row) => ({ ...row, source: '학교 일정' })) : [];
+  const schoolRows = schedule.status === 'ok' ? (schedule.rows ?? []).map((row) => ({ ...row, source: 'neis' })) : [];
   const personalRows = calendar.status === 'ok' ? (calendar.rows ?? []).map((row) => ({
     AA_YMD: calendarDateKey(row.start),
     EVENT_NM: row.title,
     TIME_LABEL: row.timeLabel,
-    source: '개인 일정',
+    source: 'Google',
     isPersonal: true
   })) : [];
   const rows = [...schoolRows, ...personalRows].filter((row) => dateFromKey(row.AA_YMD));
@@ -130,7 +130,7 @@ function scheduleItems(rows, todayKey) {
   return `<ol class="schedule-list">${rows.map((row) => `<li class="schedule-item${isImportantSchedule(row) ? ' is-important' : ''}${row.AA_YMD === todayKey ? ' is-today' : ''}">
     <time datetime="${String(row.AA_YMD).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')}">${escapeHtml(fullDateLabel(row.AA_YMD))}</time>
     <strong>${escapeHtml(row.EVENT_NM || '학교 일정')}</strong>
-    <span class="schedule-item__source" data-source="${row.isPersonal ? 'personal' : 'school'}">${escapeHtml(row.source ?? '학교 일정')}${row.TIME_LABEL ? ` · ${escapeHtml(row.TIME_LABEL)}` : row.isPersonal ? '' : ` · 대상 ${escapeHtml(scheduleGradeLabel(row))}`}</span>
+    <span class="schedule-item__source" data-source="${row.isPersonal ? 'personal' : 'school'}">${escapeHtml(row.source ?? 'neis')}${row.TIME_LABEL ? ` · ${escapeHtml(row.TIME_LABEL)}` : row.isPersonal ? '' : ` · 대상 ${escapeHtml(scheduleGradeLabel(row))}`}</span>
   </li>`).join('')}</ol>`;
 }
 
@@ -152,7 +152,7 @@ function calendarDays(date, rows, dateField = 'AA_YMD') {
       const day = index + 1;
       const key = dateKey(new Date(year, month, day));
       const classes = [eventDates.has(key) && 'has-event', personalDates.has(key) && 'has-personal-event', schoolDates.has(key) && 'has-school-event'].filter(Boolean).join(' ');
-      return `<button type="button" data-date="${key}" aria-pressed="${key === selected}"${classes ? ` class="${classes}"` : ''}><span>${day}</span>${eventDates.has(key) ? `<span class="sr-only">${personalDates.has(key) ? ' 개인 일정 있음' : ''}${schoolDates.has(key) ? ' 학교 일정 있음' : ''}</span>` : ''}</button>`;
+      return `<button type="button" data-date="${key}" aria-pressed="${key === selected}"${classes ? ` class="${classes}"` : ''}><span>${day}</span>${eventDates.has(key) ? `<span class="sr-only">${personalDates.has(key) ? ' Google 일정 있음' : ''}${schoolDates.has(key) ? ' neis 일정 있음' : ''}</span>` : ''}</button>`;
     }).join('')}</div>
   </div>`;
 }
