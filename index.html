@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#F4F1EA">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="학교생활">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <title>학교생활 대시보드</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -14,5 +19,10 @@
 <body>
   <div id="app"></div>
   <script type="module" src="./src/main.mjs"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+    }
+  </script>
 </body>
 </html>

@@ -1,0 +1,23 @@
+{
+  "name": "학교생활 대시보드",
+  "short_name": "학교생활",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#F4F1EA",
+  "background_color": "#F4F1EA",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
