@@ -143,7 +143,7 @@ async function calendarEventsList(session, calendarId, range) {
       const start = item.start?.dateTime ?? item.start?.date;
       return {
         start,
-        title: item.summary || '제목 없는 개인 일정',
+        title: item.summary || '제목 없는 Google 일정',
         timeLabel: item.start?.dateTime ? String(item.start.dateTime).slice(11, 16) : '종일',
         calendarId
       };

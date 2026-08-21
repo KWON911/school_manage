@@ -343,8 +343,8 @@ test('dashboard combines personal calendar items with school events under a neut
   const upcoming = sectionMarkup(container.innerHTML, 'upcoming');
   assert.match(upcoming, /일정 모아보기/);
   assert.match(upcoming, /치과 검진/);
-  assert.match(upcoming, /개인 일정/);
-  assert.match(upcoming, /학교 일정/);
+  assert.match(upcoming, /Google/);
+  assert.match(upcoming, /neis/);
 });
 
 test('dashboard clears personal events without a selected calendar', async () => {

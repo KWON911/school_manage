@@ -129,7 +129,7 @@ function scheduleItems(rows, todayKey) {
   if (rows.length === 0) return '<p class="module-empty" role="status">일정이 등록되지 않았어요.</p>';
   return `<ol class="schedule-list">${rows.map((row) => `<li class="schedule-item${isImportantSchedule(row) ? ' is-important' : ''}${row.AA_YMD === todayKey ? ' is-today' : ''}">
     <time datetime="${String(row.AA_YMD).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')}">${escapeHtml(fullDateLabel(row.AA_YMD))}</time>
-    <strong>${escapeHtml(row.EVENT_NM || '학교 일정')}</strong>
+    <strong>${escapeHtml(row.EVENT_NM || 'neis 일정')}</strong>
     <span class="schedule-item__source" data-source="${row.isPersonal ? 'personal' : 'school'}">${escapeHtml(row.source ?? 'neis')}${row.TIME_LABEL ? ` · ${escapeHtml(row.TIME_LABEL)}` : row.isPersonal ? '' : ` · 대상 ${escapeHtml(scheduleGradeLabel(row))}`}</span>
   </li>`).join('')}</ol>`;
 }

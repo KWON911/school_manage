@@ -58,10 +58,10 @@ function renderCalendarConnection(status, calendars = [], selectedIds = []) {
   return `<section class="settings-section calendar-connection" aria-labelledby="settings-calendar-title">
     <div class="settings-section__heading">
       <h2 id="settings-calendar-title">Google Calendar</h2>
-      <p>개인 일정은 학교 일정과 구분해 다가오는 일정에 함께 보여 드려요.</p>
+      <p>Google 일정은 neis 일정과 구분해 다가오는 일정에 함께 보여 드려요.</p>
     </div>
     <div class="calendar-connection__row">
-      <p class="calendar-connection__status">${connected ? '연결됨 · 개인 일정을 불러오고 있어요.' : '연결하지 않음 · Google 계정에서 읽기 권한을 허용해 주세요.'}</p>
+      <p class="calendar-connection__status">${connected ? '연결됨 · Google 일정을 불러오고 있어요.' : '연결하지 않음 · Google 계정에서 읽기 권한을 허용해 주세요.'}</p>
       <button class="button ${connected ? 'button--ghost' : 'button--secondary'}" type="button" data-action="${connected ? 'disconnect-google-calendar' : 'connect-google-calendar'}">${connected ? '연결 해제' : 'Google Calendar 연결'}</button>
     </div>
     ${picker}

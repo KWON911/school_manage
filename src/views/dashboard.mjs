@@ -268,14 +268,14 @@ function calendarDateKey(value) {
 function upcomingRows(schedule, calendar, date) {
   const school = schedule.status === 'ok' ? (schedule.rows ?? []).map((row) => ({
     date: row.AA_YMD,
-    title: row.EVENT_NM || '학교 일정',
-    source: '학교 일정'
+    title: row.EVENT_NM || 'neis 일정',
+    source: 'neis'
   })) : [];
   const personal = calendar.status === 'ok' ? (calendar.rows ?? []).map((row) => ({
     date: calendarDateKey(row.start),
-    title: row.title || '개인 일정',
+    title: row.title || 'Google 일정',
     timeLabel: row.timeLabel,
-    source: '개인 일정'
+    source: 'Google'
   })) : [];
   return [...school, ...personal]
     .filter((row) => /^\d{8}$/.test(row.date) && row.date >= date.key)
@@ -293,7 +293,7 @@ function renderUpcomingCard(schedule, calendar, date) {
     </article>`;
   }
   const content = rows.length > 0
-    ? `<ol class="upcoming-list">${rows.map((row) => `<li class="upcoming-list__item upcoming-list__item--${row.source === '개인 일정' ? 'personal' : 'school'}"><time><strong>${escapeHtml(String(row.date).slice(4, 6))}.${escapeHtml(String(row.date).slice(6, 8))}</strong><span>${escapeHtml(row.date === date.key ? '오늘' : row.timeLabel || '예정')}</span></time><div><strong>${escapeHtml(row.title)}</strong><span class="schedule-source">${escapeHtml(row.source)}</span></div></li>`).join('')}</ol>`
+    ? `<ol class="upcoming-list">${rows.map((row) => `<li class="upcoming-list__item upcoming-list__item--${row.source === 'Google' ? 'personal' : 'school'}"><time><strong>${escapeHtml(String(row.date).slice(4, 6))}.${escapeHtml(String(row.date).slice(6, 8))}</strong><span>${escapeHtml(row.date === date.key ? '오늘' : row.timeLabel || '예정')}</span></time><div><strong>${escapeHtml(row.title)}</strong><span class="schedule-source">${escapeHtml(row.source)}</span></div></li>`).join('')}</ol>`
     : '<div class="dashboard-state" role="status"><p>다가오는 일정이 아직 없어요.</p></div>';
   return `<article class="dashboard-card dashboard-card--upcoming" data-dashboard-section="upcoming">
     <div class="dashboard-card__heading"><p class="dashboard-card__eyebrow">일정 모아보기</p><h2>다가오는 일정</h2></div>
