@@ -1522,12 +1522,6 @@
 }
 
 .timetable-week-table .period-column { width: 64px; text-align: center; }
-.timetable-week-table th.is-current-day,
-.timetable-week-table td.is-current-day {
-  background: rgba(203, 162, 88, 0.1);
-  border-color: rgba(203, 162, 88, 0.58);
-}
-
 .timetable-week-table td {
   min-width: 0;
   padding: 14px 8px;
@@ -1539,6 +1533,12 @@
   color: var(--deep);
   font-size: 13px;
   font-weight: 600;
+}
+
+.timetable-week-table th.is-current-day,
+.timetable-week-table td.is-current-day {
+  background: rgba(203, 162, 88, 0.1);
+  border-color: rgba(203, 162, 88, 0.58);
 }
 
 .timetable-week-table .period-list li {
