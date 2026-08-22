@@ -425,6 +425,19 @@
   line-height: 1.3;
 }
 
+.dashboard-card__heading-row {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.dashboard-card__heading-copy {
+  min-width: 0;
+}
+
 .dashboard-card__eyebrow {
   margin: 0;
   color: var(--green);
@@ -658,6 +671,21 @@
 .dashboard-card__action:hover {
   border-color: var(--green);
   background: var(--mint);
+}
+
+.dashboard-card__heading-action {
+  width: auto;
+  margin-top: -6px;
+  padding: 0 8px;
+  border-color: transparent;
+  border-radius: 8px;
+  color: var(--action);
+  background: transparent;
+  white-space: nowrap;
+}
+
+.dashboard-card__heading-action:hover {
+  border-color: var(--line);
 }
 
 .upcoming-list { display: grid; margin: 18px 0 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
@@ -1843,6 +1871,10 @@
 
   .dashboard-card__heading h2 {
     font-size: 21px;
+  }
+
+  .dashboard-card__heading-action {
+    margin-top: 4px;
   }
 
   .timetable-preview--vertical { grid-template-columns: 1fr; }

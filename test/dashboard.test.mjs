@@ -110,6 +110,12 @@ test('student dashboard shows a vertical full timetable beside today meals', asy
   assert.match(container.innerHTML, /class="timetable-preview__subject"/);
   assert.match(container.innerHTML, /class="meal-item__illustration"/);
   assert.match(container.innerHTML, /aria-hidden="true"/);
+  assert.match(sectionMarkup(container.innerHTML, 'timetable'), /dashboard-card__heading-action[\s\S]*시간표 전체 보기/);
+  assert.match(sectionMarkup(container.innerHTML, 'meals'), /dashboard-card__heading-action[\s\S]*급식 자세히 보기/);
+  assert.match(sectionMarkup(container.innerHTML, 'upcoming'), /dashboard-card__heading-action[\s\S]*일정 전체 보기/);
+  assert.doesNotMatch(sectionMarkup(container.innerHTML, 'timetable'), /<button class="dashboard-card__action"[^>]*>시간표 전체 보기/);
+  assert.doesNotMatch(sectionMarkup(container.innerHTML, 'meals'), /<button class="dashboard-card__action"[^>]*>급식 자세히 보기/);
+  assert.doesNotMatch(sectionMarkup(container.innerHTML, 'upcoming'), /<button class="dashboard-card__action"[^>]*>일정 전체 보기/);
   assert.match(container.innerHTML, /data-dashboard-section="upcoming"/);
   assert.match(container.innerHTML, /다가오는 일정/);
 });

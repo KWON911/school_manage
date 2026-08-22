@@ -117,8 +117,8 @@ async function cachedRequest(cache, key, request) {
   return cache.get(key);
 }
 
-function action(view, label) {
-  return `<button class="dashboard-card__action" type="button" data-view="${view}">${label}</button>`;
+function action(view, label, className = '') {
+  return `<button class="dashboard-card__action${className ? ` ${className}` : ''}" type="button" data-view="${view}">${label}</button>`;
 }
 
 function retryAction(resource) {
@@ -200,8 +200,13 @@ function renderTimetableCard(section, profile, result, date, now) {
   if (rows.length === 0) return renderTimetableCard(section, profile, { status: 'no-data' }, date, now);
   return `<article class="dashboard-card dashboard-card--timetable" data-dashboard-section="${section}">
     <div class="dashboard-card__heading">
-      <p class="dashboard-card__eyebrow">${isParent ? `${classLabel} 자녀 수업` : classLabel}</p>
-      <h2>${title}</h2>
+      <div class="dashboard-card__heading-row">
+        <div class="dashboard-card__heading-copy">
+          <p class="dashboard-card__eyebrow">${isParent ? `${classLabel} 자녀 수업` : classLabel}</p>
+          <h2>${title}</h2>
+        </div>
+        ${action('timetable', '시간표 전체 보기', 'dashboard-card__heading-action')}
+      </div>
       ${dateControls}
     </div>
     <ol class="timetable-preview timetable-preview--vertical" aria-label="오늘 시간표">
@@ -211,7 +216,6 @@ function renderTimetableCard(section, profile, result, date, now) {
         return `<li><span>${escapeHtml(row.PERIO)}교시</span><strong class="timetable-preview__subject">${escapeHtml(row.ITRT_CNTNT || '수업 정보 없음')}</strong><em class="class-status${status === 'current' ? ' is-current' : ''}">${label}</em></li>`;
       }).join('')}
     </ol>
-    ${action('timetable', '시간표 전체 보기')}
   </article>`;
 }
 
@@ -272,8 +276,13 @@ function renderMealsCard(profile, result, date, now) {
   const failure = failureState(result.status, 'meals');
   return `<article class="dashboard-card dashboard-card--meals" data-dashboard-section="meals">
     <div class="dashboard-card__heading">
-      <p class="dashboard-card__eyebrow">오늘의 급식</p>
-      <h2>${escapeHtml(row?.MMEAL_SC_NM ?? '점심 식단')}</h2>
+      <div class="dashboard-card__heading-row">
+        <div class="dashboard-card__heading-copy">
+          <p class="dashboard-card__eyebrow">오늘의 급식</p>
+          <h2>${escapeHtml(row?.MMEAL_SC_NM ?? '점심 식단')}</h2>
+        </div>
+        ${failure ? '' : action('meals', '급식 자세히 보기', 'dashboard-card__heading-action')}
+      </div>
       ${dashboardDateControls('meals', date, now)}
     </div>
     ${failure ?? (items.length > 0
@@ -281,7 +290,7 @@ function renderMealsCard(profile, result, date, now) {
       : '<div class="dashboard-state" role="status"><p>오늘 등록된 급식 정보가 없어요.</p></div>')}
     ${matched.length > 0 ? `<p class="allergy-match">설정한 알레르기 번호 ${matched.map(escapeHtml).join(', ')}가 표기된 메뉴가 있어요.</p>` : ''}
     <p class="allergy-note">알레르기 안내는 NEIS 급식 알레르기 표기를 기준으로 하며, 실제 제공 식단은 학교에 다시 확인해 주세요.</p>
-    ${failure ? retryAction('meals') : action('meals', '급식 자세히 보기')}
+    ${failure ? retryAction('meals') : ''}
   </article>`;
 }
 
@@ -313,16 +322,22 @@ function renderUpcomingCard(schedule, calendar, date) {
     return `<article class="dashboard-card dashboard-card--upcoming" data-dashboard-section="upcoming">
       <div class="dashboard-card__heading"><p class="dashboard-card__eyebrow">일정 모아보기</p><h2>다가오는 일정</h2></div>
       ${loadingState('일정을 불러오는 중이에요.')}
-      ${action('schedule', '일정 전체 보기')}
     </article>`;
   }
   const content = rows.length > 0
     ? `<ol class="upcoming-list">${rows.map((row) => `<li class="upcoming-list__item upcoming-list__item--${row.source === 'Google' ? 'personal' : 'school'}"><time><strong>${escapeHtml(String(row.date).slice(4, 6))}.${escapeHtml(String(row.date).slice(6, 8))}</strong><span>${escapeHtml(row.date === date.key ? '오늘' : row.timeLabel || '예정')}</span></time><div><strong>${escapeHtml(row.title)}</strong><span class="schedule-source">${escapeHtml(row.source)}</span></div></li>`).join('')}</ol>`
     : '<div class="dashboard-state" role="status"><p>다가오는 일정이 아직 없어요.</p></div>';
   return `<article class="dashboard-card dashboard-card--upcoming" data-dashboard-section="upcoming">
-    <div class="dashboard-card__heading"><p class="dashboard-card__eyebrow">일정 모아보기</p><h2>다가오는 일정</h2></div>
+    <div class="dashboard-card__heading">
+      <div class="dashboard-card__heading-row">
+        <div class="dashboard-card__heading-copy">
+          <p class="dashboard-card__eyebrow">일정 모아보기</p>
+          <h2>다가오는 일정</h2>
+        </div>
+        ${action('schedule', '일정 전체 보기', 'dashboard-card__heading-action')}
+      </div>
+    </div>
     ${content}
-    ${action('schedule', '일정 전체 보기')}
   </article>`;
 }
 
