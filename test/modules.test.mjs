@@ -299,6 +299,7 @@ test('timetable is always weekly with a left period column and week navigation l
   assert.match(container.innerHTML, /data-date-action="previous"[^>]*>이전 주<\/button>/);
   assert.match(container.innerHTML, /data-date-action="next"[^>]*>다음 주<\/button>/);
   assert.match(container.innerHTML, /<th scope="col" class="period-column">교시<\/th>/);
+  assert.ok((container.innerHTML.match(/class="timetable-module__subject"/g) ?? []).length >= 2);
 });
 
 test('timetable setup problems point to the relevant settings section without an invalid request', async () => {
@@ -418,12 +419,14 @@ test('meal calendar updates selected-day details and warns with icon and text on
 
   assert.match(container.innerHTML, /role="tab"[^>]*data-mode="week"[^>]*aria-selected="true"/);
   assert.match(container.innerHTML, /소시지\(11\.\)/);
+  assert.match(container.innerHTML, /class="meal-item__illustration" aria-hidden="true"/);
 
   container.fire('click', target({ mode: 'month' }));
   await view.ready;
   container.fire('click', target({ date: '20260804' }));
 
   assert.match(container.innerHTML, /class="meal-item meal-item--allergy"[\s\S]*\uC54C\uB808\uB974\uAE30 1\uBC88 \uD3EC\uD568/);
+  assert.match(container.innerHTML, /class="meal-item__illustration" aria-hidden="true"/);
 
   assert.match(container.innerHTML, /role="tabpanel"[^>]*id="meals-month-panel"/);
   assert.match(container.innerHTML, /data-date="20260804"[^>]*aria-pressed="true"/);

@@ -1496,6 +1496,11 @@
   font-weight: 600;
 }
 
+.timetable-module__subject {
+  display: block;
+  text-align: center;
+}
+
 .timetable-week-table {
   width: 100%;
   table-layout: fixed;

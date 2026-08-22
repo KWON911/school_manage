@@ -6,6 +6,7 @@ import {
   mealMatchesAllergies
 } from '../services/neis.mjs';
 import { fetchCalendarEvents as requestCalendarEvents } from '../services/google-calendar.mjs';
+import { mealIllustrationMarkup } from '../lib/meal-illustrations.mjs';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -229,7 +230,7 @@ function timetableRows(rows, key) {
 
 function periodList(rows) {
   if (rows.length === 0) return '<p class="module-empty">등록된 수업이 없어요.</p>';
-  return `<ol class="period-list">${rows.map((row) => `<li><span>${escapeHtml(row.PERIO)}교시</span><strong>${escapeHtml(row.ITRT_CNTNT || '수업 정보 없음')}</strong></li>`).join('')}</ol>`;
+  return `<ol class="period-list">${rows.map((row) => `<li><span>${escapeHtml(row.PERIO)}교시</span><strong class="timetable-module__subject">${escapeHtml(row.ITRT_CNTNT || '수업 정보 없음')}</strong></li>`).join('')}</ol>`;
 }
 
 function settingsAction(target, label) {
@@ -266,7 +267,7 @@ function renderTimetable(date, result, now) {
     <table class="timetable-week-table">
       <caption>${dateLabel(days[0])}부터 5일간 시간표</caption>
       <thead><tr><th scope="col" class="period-column">교시</th>${dayRows.map(({ day }) => `<th scope="col" class="${dateKey(day) === dateKey(now) ? 'is-current-day' : ''}">${day.getMonth() + 1}/${day.getDate()} (${WEEKDAYS[day.getDay()]})</th>`).join('')}</tr></thead>
-      <tbody>${periods.map((period) => `<tr><th scope="row" class="period-column">${escapeHtml(period)}교시</th>${dayRows.map(({ day, rows }) => { const row = rows.find((item) => String(item.PERIO) === period); return `<td class="${dateKey(day) === dateKey(now) ? 'is-current-day' : ''}">${escapeHtml(row?.ITRT_CNTNT || '수업 정보 없음')}</td>`; }).join('')}</tr>`).join('')}</tbody>
+      <tbody>${periods.map((period) => `<tr><th scope="row" class="period-column">${escapeHtml(period)}교시</th>${dayRows.map(({ day, rows }) => { const row = rows.find((item) => String(item.PERIO) === period); return `<td class="${dateKey(day) === dateKey(now) ? 'is-current-day' : ''}"><span class="timetable-module__subject">${escapeHtml(row?.ITRT_CNTNT || '수업 정보 없음')}</span></td>`; }).join('')}</tr>`).join('')}</tbody>
     </table>
     <div class="timetable-week-cards" aria-label="요일별 시간표">
       ${dayRows.map(({ day, rows }) => `<section class="weekday-card" data-weekday="${dateKey(day)}"><h2>${day.getMonth() + 1}월 ${day.getDate()}일 (${WEEKDAYS[day.getDay()]})</h2>${periodList(rows)}</section>`).join('')}
@@ -292,9 +293,10 @@ function allergyWarning(row, allergies) {
 
 function mealItemMarkup(dish, allergies) {
   const matched = dishMatchesAllergies(dish, allergies);
-  if (matched.length === 0) return `<li class="meal-item">${escapeHtml(dish)}</li>`;
+  const content = `${mealIllustrationMarkup(dish)}<span class="meal-item__name">${escapeHtml(dish)}</span>`;
+  if (matched.length === 0) return `<li class="meal-item">${content}</li>`;
   return `<li class="meal-item meal-item--allergy">
-    <span>${escapeHtml(dish)}</span>
+    ${content}
     <span class="meal-item__warning"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3 2.5 20h19z"/><path d="M12 9v5m0 3h.01"/></svg><span>\uC54C\uB808\uB974\uAE30 ${matched.map(escapeHtml).join(', ')}\uBC88 \uD3EC\uD568</span></span>
   </li>`;
 }
