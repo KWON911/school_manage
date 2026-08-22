@@ -518,6 +518,11 @@
   white-space: nowrap;
 }
 
+.timetable-preview__subject {
+  min-width: 0;
+  text-align: center;
+}
+
 .class-status { min-width: 54px; padding: 5px 8px; border-radius: 999px; color: var(--green); background: rgba(212, 233, 226, 0.55); font-size: 11px; font-style: normal; font-weight: 700; text-align: center; }
 .class-status.is-current { color: var(--action); }
 
@@ -544,6 +549,31 @@
   align-items: center;
   gap: 7px;
   flex-wrap: wrap;
+}
+
+.meal-item__illustration {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--action);
+  border-radius: 50%;
+  background: rgba(212, 233, 226, 0.75);
+}
+
+.meal-item__illustration svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+
+.meal-item__name {
+  min-width: 0;
 }
 
 .meal-item--allergy {

@@ -107,6 +107,9 @@ test('student dashboard shows a vertical full timetable beside today meals', asy
   assert.equal((container.innerHTML.match(/data-view=/g) ?? []).length, 3);
   assert.match(container.innerHTML, /dashboard-overview/);
   assert.match(container.innerHTML, /timetable-preview--vertical/);
+  assert.match(container.innerHTML, /class="timetable-preview__subject"/);
+  assert.match(container.innerHTML, /class="meal-item__illustration"/);
+  assert.match(container.innerHTML, /aria-hidden="true"/);
   assert.match(container.innerHTML, /data-dashboard-section="upcoming"/);
   assert.match(container.innerHTML, /다가오는 일정/);
 });
@@ -153,7 +156,7 @@ test('dashboard highlights only dishes matching saved allergies', async () => {
 
   const meals = sectionMarkup(container.innerHTML, 'meals');
   assert.match(meals, /<li class="meal-item meal-item--allergy">[\s\S]*Egg\(1\.\)[\s\S]*\uC54C\uB808\uB974\uAE30 1\uBC88 \uD3EC\uD568/);
-  assert.match(meals, /<li class="meal-item">Sausage\(11\.\)<\/li>/);
+  assert.match(meals, /<li class="meal-item">[\s\S]*Sausage\(11\.\)[\s\S]*<\/li>/);
 });
 
 test('dashboard displays a live Korean date clock and clears its timer on destroy', async () => {
