@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import vm from 'node:vm';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -43,4 +44,41 @@ test('iOS metadata points to a real 180x180 PNG touch icon', () => {
 test('manifest icon files are real PNGs at their declared sizes', () => {
   assert.deepEqual(pngSize('icons/icon-192.png'), { width: 192, height: 192 });
   assert.deepEqual(pngSize('icons/icon-512.png'), { width: 512, height: 512 });
+});
+
+test('service worker refreshes a cached app asset from the network', async () => {
+  const listeners = new Map();
+  const cachedResponse = { source: 'cache' };
+  const networkResponse = { source: 'network', clone() { return this; } };
+  let fetchCalls = 0;
+  const context = {
+    URL,
+    Promise,
+    caches: {
+      async match() { return cachedResponse; },
+      async open() { return { async put() {} }; },
+      async keys() { return []; },
+      async delete() { return true; }
+    },
+    fetch: async () => {
+      fetchCalls += 1;
+      return networkResponse;
+    },
+    self: {
+      location: { origin: 'https://school-life-info.vercel.app' },
+      addEventListener(type, listener) { listeners.set(type, listener); },
+      skipWaiting() {},
+      clients: { claim() {} }
+    }
+  };
+  vm.runInNewContext(read('sw.js'), context);
+
+  let responsePromise;
+  listeners.get('fetch')({
+    request: { method: 'GET', url: 'https://school-life-info.vercel.app/src/styles/app.css' },
+    respondWith(promise) { responsePromise = promise; }
+  });
+
+  assert.equal((await responsePromise).source, 'network');
+  assert.equal(fetchCalls, 1);
 });
