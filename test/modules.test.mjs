@@ -594,6 +594,9 @@ test('module CSS keeps controls touch-sized and replaces the mobile week table w
   const calendarRule = css.match(/\.module-calendar__days button\s*\{([^}]*)\}/)?.[1] ?? '';
   const calendarMinWidth = Number(calendarRule.match(/min-width:\s*([\d.]+)px/)?.[1]);
   const mobileRules = css.slice(css.lastIndexOf('@media (max-width: 767px)'));
+  const currentDayRule = css.match(/\.timetable-week-table th\.is-current-day,[\s\S]*?\.timetable-week-table td\.is-current-day\s*\{([^}]*)\}/)?.[1] ?? '';
+  const currentDayRuleStart = css.indexOf('.timetable-week-table th.is-current-day,');
+  const timetableCellRuleStart = css.indexOf('.timetable-week-table td {');
 
   assert.ok(minHeight >= 44, `expected at least 44px, received ${minHeight || 'no value'}`);
   assert.ok(calendarMinWidth >= 44, `expected a 44px calendar target, received ${calendarMinWidth || 'no value'}`);
@@ -604,9 +607,14 @@ test('module CSS keeps controls touch-sized and replaces the mobile week table w
 
   assert.match(timetableCellRule, /background:\s*#fff/);
   assert.match(timetableCellRule, /border:\s*1px solid var\(--line\)/);
-  assert.match(css, /\.timetable-week-table th\.is-current-day,[\s\S]*?\.timetable-week-table td\.is-current-day\s*\{[\s\S]*border-color:\s*rgba\(203\, 162, 88,/);
+  assert.match(currentDayRule, /background:\s*rgba\(203, 162, 88, 0\.1\)/);
+  assert.match(currentDayRule, /border-color:\s*rgba\(203, 162, 88, 0\.58\)/);
+  assert.ok(currentDayRuleStart > timetableCellRuleStart, 'current-day rule must follow the base timetable cell rule');
   assert.match(mobileWeekdayRule, /background:\s*#fff/);
   assert.match(mobileWeekdayRule, /border:\s*1px solid var\(--line\)/);
+  const mobilePeriodRule = mobileRules.match(/\.period-list li\s*\{([^}]*)\}/)?.[1] ?? '';
+  assert.match(mobilePeriodRule, /background:\s*#fff/);
+  assert.match(mobilePeriodRule, /border:\s*1px solid var\(--line\)/);
   assert.match(css, /@media \(max-width: 359px\)[\s\S]*\.module-calendar__days\s*\{[^}]*grid-template-columns:\s*repeat\(4,/);
 });
 
