@@ -599,6 +599,14 @@ test('module CSS keeps controls touch-sized and replaces the mobile week table w
   assert.ok(calendarMinWidth >= 44, `expected a 44px calendar target, received ${calendarMinWidth || 'no value'}`);
   assert.match(mobileRules, /\.timetable-week-table\s*\{[^}]*display:\s*none/);
   assert.match(mobileRules, /\.timetable-week-cards\s*\{[^}]*display:\s*grid/);
+  const timetableCellRule = css.match(/\.timetable-week-table td\s*\{([^}]*)\}/)?.[1] ?? '';
+  const mobileWeekdayRule = mobileRules.match(/\.weekday-card\s*\{([^}]*)\}/)?.[1] ?? '';
+
+  assert.match(timetableCellRule, /background:\s*#fff/);
+  assert.match(timetableCellRule, /border:\s*1px solid var\(--line\)/);
+  assert.match(css, /\.timetable-week-table th\.is-current-day,[\s\S]*?\.timetable-week-table td\.is-current-day\s*\{[\s\S]*border-color:\s*rgba\(203\, 162, 88,/);
+  assert.match(mobileWeekdayRule, /background:\s*#fff/);
+  assert.match(mobileWeekdayRule, /border:\s*1px solid var\(--line\)/);
   assert.match(css, /@media \(max-width: 359px\)[\s\S]*\.module-calendar__days\s*\{[^}]*grid-template-columns:\s*repeat\(4,/);
 });
 

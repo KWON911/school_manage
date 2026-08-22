@@ -1523,7 +1523,10 @@
 
 .timetable-week-table .period-column { width: 64px; text-align: center; }
 .timetable-week-table th.is-current-day,
-.timetable-week-table td.is-current-day { background: rgba(203, 162, 88, 0.16); }
+.timetable-week-table td.is-current-day {
+  background: rgba(203, 162, 88, 0.1);
+  border-color: rgba(203, 162, 88, 0.58);
+}
 
 .timetable-week-table td {
   min-width: 0;
@@ -1531,7 +1534,8 @@
   vertical-align: middle;
   text-align: center;
   border-radius: 9px;
-  background: rgba(212, 233, 226, 0.2);
+  background: #fff;
+  border: 1px solid var(--line);
   color: var(--deep);
   font-size: 13px;
   font-weight: 600;
@@ -2063,8 +2067,14 @@
   .weekday-card {
     min-width: 0;
     padding: 16px;
+    background: #fff;
     border: 1px solid var(--line);
     border-radius: 10px;
+  }
+
+  .period-list li {
+    background: #fff;
+    border: 1px solid var(--line);
   }
 
   .weekday-card h2 {
